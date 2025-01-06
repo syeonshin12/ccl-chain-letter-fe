@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "moduleResolution": "node",
+    "types": ["node", "@types/three", "@nuxt/types"],
     "paths": {
       "@lottiefiles/dotlottie-vue": ["node_modules/@lottiefiles/dotlottie-vue"]
     }

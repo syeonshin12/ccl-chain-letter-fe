@@ -20,6 +20,7 @@ import { DotLottieVue } from "@lottiefiles/dotlottie-vue";
 
 <style lang="scss">
 .intro-wrapper {
+  background-color: #3f72af;
   display: flex;
   flex-direction: column;
   align-items: center;
