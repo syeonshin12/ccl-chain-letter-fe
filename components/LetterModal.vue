@@ -1,9 +1,62 @@
 <template>
-  <div>hellooooooo</div>
+  <div class="modal-overlay">
+    <div class="letter-wrapper">
+      <!-- 만약에 이미지가 없으면 기본 이미지를 주자 -->
+      <img class="letter-img" src="/public/test_img.jpeg" alt="" />
+      <div class="content-wrapper">
+        <div class="content">
+          안녕하세요 반갑습니다. <br />요즘 날이 많이 추운데요<br />감기
+          조심하시길 바랍니다.
+        </div>
+        <div class="letter-sender">From. 싱싱여니</div>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script>
-export default {};
-</script>
+<script lang="ts" setup></script>
 
-<style></style>
+<style scoped lang="scss">
+.letter-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 10px;
+  background-color: #fdfde7;
+  width: clamp(60vw, 80%, 90vw);
+  max-width: 40%;
+  min-width: 300px;
+  height: 80vh;
+  text-align: center;
+  margin: 0 auto;
+  margin-top: 10vh;
+  border-radius: 10px; /* 부드러운 모서리 */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 약간의 그림자 */
+}
+
+.letter-img {
+  border-radius: 10px;
+  width: 90%;
+  height: 50%;
+  object-fit: contain;
+  background-color: lightgray;
+}
+
+.content-wrapper {
+  margin-top: 7vh;
+  width: 90%;
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+}
+
+.letter-sender {
+  margin-top: 2vh;
+  font-size: clamp(1rem, 1.5vw, 1.5rem);
+}
+</style>

@@ -18,9 +18,13 @@
 import { DotLottieVue } from "@lottiefiles/dotlottie-vue";
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+body {
+  margin: 0;
+  padding: 0;
+}
+
 .intro-wrapper {
-  background-color: #3f72af;
   display: flex;
   flex-direction: column;
   align-items: center;
