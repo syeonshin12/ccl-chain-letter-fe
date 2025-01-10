@@ -1,6 +1,7 @@
 <template>
   <div class="modal-overlay">
     <div class="letter-wrapper">
+      <button class="close-btn" @click="handleCloseModal">X</button>
       <!-- 만약에 이미지가 없으면 기본 이미지를 주자 -->
       <img class="letter-img" src="/public/test_img.jpeg" alt="" />
       <div class="content-wrapper">
@@ -10,13 +11,31 @@
         </div>
         <div class="letter-sender">From. 싱싱여니</div>
       </div>
+      <button class="send-button" @click="handleSendDM">편지 보내기</button>
     </div>
   </div>
 </template>
 
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+const emit = defineEmits(["close-letter-modal"]);
+
+const handleCloseModal = () => {
+  emit("close-letter-modal");
+};
+
+const handleSendDM = () => {};
+</script>
 
 <style scoped lang="scss">
+.close-btn {
+  width: 90%;
+  display: flex;
+  justify-content: flex-end;
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
 .letter-wrapper {
   display: flex;
   flex-direction: column;
@@ -58,5 +77,14 @@
 .letter-sender {
   margin-top: 2vh;
   font-size: clamp(1rem, 1.5vw, 1.5rem);
+}
+
+.send-button {
+  margin-top: 2vh;
+  width: 90%;
+  height: 8%;
+  font-size: 20px;
+  border-radius: 10px;
+  background: lightblue;
 }
 </style>

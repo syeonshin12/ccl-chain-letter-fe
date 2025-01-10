@@ -8,7 +8,7 @@
       loop
       src="https://lottie.host/84649680-3b14-4daf-9b79-e25375c09bd7/gHuO5pgPxA.lottie"
     />
-    <NuxtLink to="/main">
+    <NuxtLink to="/intro">
       <button class="start-button">시작하기</button>
     </NuxtLink>
   </div>

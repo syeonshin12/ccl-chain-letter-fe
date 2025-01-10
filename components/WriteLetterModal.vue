@@ -1,11 +1,11 @@
 <template>
   <div class="modal-overlay">
     <div class="letter-wrapper">
-      <div class="file-upload-wrapper">
+      <button class="close-btn" @click="handleCloseModal">X</button>
+      <div class="file-upload-wrapper" v-if="!previewUrl">
         <label for="file-upload" class="custom-file-upload">
           사진 업로드
           <input
-            v-if="!previewUrl"
             type="file"
             id="file-upload"
             @change="handleImageUpload"
@@ -13,19 +13,18 @@
           />
         </label>
       </div>
-
-      <div class="img-wrapper" v-if="previewUrl">
+      <div class="img-wrapper" v-else>
         <img :src="previewUrl" alt="Preview" class="letter-img" />
         <button class="remove-btn" @click="handleRemoveImage">X</button>
       </div>
 
-      <div class="content-wrapper">
-        <div class="content">
-          안녕하세요 반갑습니다. <br />요즘 날이 많이 추운데요<br />감기
-          조심하시길 바랍니다.
-        </div>
-        <div class="letter-sender">From. 싱싱여니</div>
-      </div>
+      <textarea
+        class="custom_textarea"
+        placeholder="내용을 입력해보세요."
+        maxlength="100"
+      ></textarea>
+
+      <button class="send-button" @click="handleSendLetter">편지 보내기</button>
     </div>
   </div>
 </template>
@@ -33,6 +32,7 @@
 <script lang="ts" setup>
 const imageFile = ref();
 const previewUrl = ref();
+const emit = defineEmits(["close-write-modal"]);
 
 const handleImageUpload = (event: Event) => {
   const target = event.target as HTMLInputElement; // 타입 단언으로 HTMLInputElement로 지정
@@ -43,18 +43,40 @@ const handleImageUpload = (event: Event) => {
   }
 };
 
+const handleCloseModal = () => {
+  emit("close-write-modal");
+};
+
 const handleRemoveImage = () => {
   imageFile.value = null;
   previewUrl.value = null;
 };
+
+const handleSendLetter = () => {};
 </script>
 
 <style scoped lang="scss">
+.close-btn {
+  width: 90%;
+  display: flex;
+  justify-content: flex-end;
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
 #file-upload {
   display: none;
 }
 
 .file-upload-wrapper {
+  width: 90%;
+  height: 40%;
+  background-color: lightgray;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .custom-file-upload {
@@ -94,7 +116,7 @@ const handleRemoveImage = () => {
 .img-wrapper {
   position: relative;
   width: 90%;
-  height: 50%;
+  height: 40%;
 }
 
 .letter-img {
@@ -117,21 +139,30 @@ const handleRemoveImage = () => {
   cursor: pointer;
 }
 
-.content-wrapper {
-  margin-top: 7vh;
+.custom_textarea {
+  margin-top: 2vh;
   width: 90%;
-  height: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.content {
+  height: 40%;
+  padding: 20px;
   font-size: clamp(1rem, 2vw, 1.5rem);
+  background-color: rgb(223, 219, 219);
+  resize: none;
+  color: black;
+  border-radius: 10px;
+  outline: none;
 }
 
 .letter-sender {
   margin-top: 2vh;
   font-size: clamp(1rem, 1.5vw, 1.5rem);
+}
+
+.send-button {
+  margin-top: 2vh;
+  width: 90%;
+  height: 8%;
+  font-size: 20px;
+  border-radius: 10px;
+  background: lightblue;
 }
 </style>

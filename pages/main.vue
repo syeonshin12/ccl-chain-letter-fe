@@ -5,8 +5,14 @@
       <button class="dm">DM</button>
     </div>
 
-    <write-letter-modal v-show="showWriteLetterModal" />
-    <letter-modal v-show="showLetterModal" />
+    <write-letter-modal
+      v-show="showWriteLetterModal"
+      @close-write-modal="showWriteLetterModal = false"
+    />
+    <letter-modal
+      v-show="showLetterModal"
+      @close-letter-modal="showLetterModal = false"
+    />
   </div>
 </template>
 
