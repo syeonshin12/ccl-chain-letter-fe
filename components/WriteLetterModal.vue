@@ -56,6 +56,18 @@ const handleSendLetter = () => {};
 </script>
 
 <style scoped lang="scss">
+.modal-overlay {
+  position: fixed; /* 화면 고정 */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+
 .close-btn {
   width: 90%;
   display: flex;

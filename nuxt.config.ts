@@ -18,4 +18,8 @@ export default defineNuxtConfig({
     prefetch: true,
     preconnect: true,
   },
+
+  build: {
+    transpile: ["three"],
+  },
 });
