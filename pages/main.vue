@@ -33,7 +33,7 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let mesh: THREE.Mesh;
-let boat;
+let boat: THREE.Group;
 
 onMounted(() => {
   init();
