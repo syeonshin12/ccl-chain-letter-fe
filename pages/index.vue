@@ -6,7 +6,7 @@
       style="height: 300px; width: 300px"
       autoplay
       loop
-      src="https://lottie.host/84649680-3b14-4daf-9b79-e25375c09bd7/gHuO5pgPxA.lottie"
+      src="/bottle.lottie"
     />
     <NuxtLink to="/intro">
       <button class="start-button">시작하기</button>
