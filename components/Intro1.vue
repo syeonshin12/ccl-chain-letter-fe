@@ -1,6 +1,12 @@
 <template>
   <div class="intro-wrapper">
-    <DotLottieVue class="intro-img" autoplay loop src="/letter.lottie" />
+    <DotLottieVue
+      renderer="canvas"
+      class="intro-img"
+      autoplay
+      loop
+      src="/letter.lottie"
+    />
     <div class="intro-content">
       <span class="text" v-html="displayedText"></span>
     </div>

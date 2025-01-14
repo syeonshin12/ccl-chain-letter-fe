@@ -1,8 +1,8 @@
 <template>
   <div class="intro-wrapper">
     <div class="title">행운의 편지</div>
-
     <DotLottieVue
+      renderer="canvas"
       style="height: 300px; width: 300px"
       autoplay
       loop
