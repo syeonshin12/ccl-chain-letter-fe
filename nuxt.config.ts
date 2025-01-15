@@ -22,4 +22,10 @@ export default defineNuxtConfig({
   build: {
     transpile: ["three"],
   },
+  app: {
+    head: {
+      title: "행운의 편지",
+      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
+    },
+  },
 });
