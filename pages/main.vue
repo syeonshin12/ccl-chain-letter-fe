@@ -96,10 +96,10 @@ function init() {
 
   // 보트 모델 로드
   loader.load(
-    "/boat_two.glb",
+    "/boat_lowpoly.glb",
     (gltf) => {
       boat = gltf.scene;
-      boat.scale.set(8, 8, 8); // 보트 크기 조정 (필요 시 크기 변경)
+      boat.scale.set(0.16, 0.16, 0.16); // 보트 크기 조정 (필요 시 크기 변경)
       boat.position.set(0, 0, 0); // 보트의 초기 위치 설정
 
       boat.rotation.y = (Math.PI * 210) / 180;
@@ -191,14 +191,10 @@ function animate() {
 function render() {
   const time = performance.now() * 0.001;
 
-  // 메쉬 애니메이션
-  // mesh.position.y = Math.sin(time) * 20 + 5;
-  // mesh.rotation.x = time * 0.5;
-  // mesh.rotation.z = time * 0.51;
-
   if (boat) {
     // boat.rotation.y = time * 0.5; // 보트가 회전하도록 애니메이션
-    boat.position.y = Math.sin(time) * 2 - 2; // 보트가 물 위에서 물결처럼 움직이도록 설정
+
+    boat.position.y = Math.sin(time) * 0.7 - 11; // 보트가 물 위에서 물결처럼 움직이도록 설정
   }
 
   // 물 애니메이션
