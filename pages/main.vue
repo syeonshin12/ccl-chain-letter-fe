@@ -4,7 +4,6 @@
 
     <div class="tool-wrapper">
       <button class="write" @click="openWriteLetterModal">글쓰기</button>
-      <button class="dm">DM</button>
     </div>
 
     <write-letter-modal
@@ -14,6 +13,15 @@
     <letter-modal
       v-if="showLetterModal"
       @close-letter-modal="showLetterModal = false"
+    />
+
+    <bottle
+      :onClick="openLetterModal"
+      v-for="(bottle, index) in bottles"
+      :key="index"
+      :position="bottle.position"
+      :scene="scene"
+      :camera="camera"
     />
   </div>
 </template>
@@ -25,6 +33,8 @@ import { Sky } from "three/examples/jsm/objects/Sky";
 import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"; // GLTFLoader 임포트
 
+const bottles = ref<{ position: { x: number; y: number; z: number } }[]>([]); // 병 배열
+
 const container = ref<HTMLElement | null>(null);
 let sun: THREE.Vector3;
 let water: Water;
@@ -32,8 +42,7 @@ let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
-let mesh: THREE.Mesh;
-let boat: THREE.Group;
+let boat: THREE.Group | null = null;
 
 onMounted(() => {
   init();
@@ -45,6 +54,75 @@ onBeforeUnmount(() => {
     renderer.dispose();
   }
 });
+
+function getRandomPosition(
+  minDistanceFromBoat: number,
+  minDistanceBetweenBottles: number
+) {
+  let position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  let distanceFromBoat = 0;
+  let distanceBetweenBottles = Infinity; // 시작할 때는 무한대로 설정
+
+  let attempts = 0; // 최대 시도 횟수 (무한 루프 방지)
+  const maxAttempts = 100; // 시도 횟수 제한
+
+  do {
+    if (!boat) return position;
+
+    // 랜덤 위치 생성 (보트의 위치를 중심으로 생성되도록 범위 조정)
+    position = {
+      x: boat.position.x + Math.random() * 200 - 100, // 보트 주변 -100 ~ 100 범위
+      y: Math.random() * 5 + 2, // 약간 떠 있는 효과
+      z: boat.position.z + Math.random() * 200 - 100, // 보트 주변 -100 ~ 100 범위
+    };
+
+    // 보트와의 거리 계산
+    distanceFromBoat = Math.sqrt(
+      (position.x - boat.position.x) ** 2 +
+        (position.y - boat.position.y) ** 2 +
+        (position.z - boat.position.z) ** 2
+    );
+
+    // 병들 간의 최소 거리 체크
+    if (bottles.value.length > 0) {
+      distanceBetweenBottles = Math.min(
+        ...bottles.value.map((bottle) => {
+          const dx = position.x - bottle.position.x;
+          const dy = position.y - bottle.position.y;
+          const dz = position.z - bottle.position.z;
+          return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        })
+      );
+    }
+
+    attempts++; // 시도 횟수 증가
+    if (attempts > maxAttempts) {
+      console.warn("최대 시도 횟수를 초과했습니다. 병 생성 실패.");
+      return position; // 최대 시도 횟수 초과시 그냥 반환
+    }
+  } while (
+    distanceFromBoat < minDistanceFromBoat ||
+    distanceBetweenBottles < minDistanceBetweenBottles
+  ); // 두 조건 모두 만족할 때까지 반복
+
+  return position;
+}
+
+function createBottles() {
+  if (!boat) return;
+
+  const minDistanceFromBoat = 80; // 보트와 최소  거리 이상
+  const minDistanceBetweenBottles = 25; // 병들 간 최소 거리 설정
+
+  for (let i = 0; i < 15; i++) {
+    // 병의 위치가 보트와 겹치지 않으면서, 병들 간에도 겹치지 않도록 위치 생성
+    const position = getRandomPosition(
+      minDistanceFromBoat,
+      minDistanceBetweenBottles
+    );
+    bottles.value.push({ position });
+  }
+}
 
 function init() {
   if (!container.value) return;
@@ -66,7 +144,7 @@ function init() {
     1,
     20000
   );
-  camera.position.set(30, 30, 100);
+  camera.position.set(20, 70, 170); // 카메라를 더 높은 위치로 이동
 
   // Sun Vector 설정 - vector3는 3D 좌표 표현하는 클래스. 물체의 위치나 방향 나타냄
   // 태양의 방향 필요할때 사용. 물의 표면이나 하늘에서 태양의 위치가 영향을 미치게 되면 이 벡터 사용
@@ -84,26 +162,32 @@ function init() {
       }
     ),
     sunDirection: new THREE.Vector3(),
-    sunColor: 0xffffff,
-    waterColor: 0x001e0f,
-    distortionScale: 3.7,
+    sunColor: 0xcccccc,
+    waterColor: 0x003366,
+    distortionScale: 2.0,
     fog: scene.fog !== undefined,
   });
   water.rotation.x = -Math.PI / 2;
+
+  water.material.uniforms["alpha"].value = 1;
+
   scene.add(water);
 
   const loader = new GLTFLoader();
 
   // 보트 모델 로드
   loader.load(
-    "/boat_lowpoly.glb",
+    "/boat.glb",
     (gltf) => {
       boat = gltf.scene;
-      boat.scale.set(0.16, 0.16, 0.16); // 보트 크기 조정 (필요 시 크기 변경)
-      boat.position.set(0, 0, 0); // 보트의 초기 위치 설정
+      boat.scale.set(30, 30, 30); // 보트 크기 조정 (필요 시 크기 변경)
+      boat.position.set(0, 0, -40); // 보트의 초기 위치 설정
 
-      boat.rotation.y = (Math.PI * 210) / 180;
+      boat.rotation.y = (Math.PI * 240) / 180;
       scene.add(boat); // 보트 씬에 추가
+
+      // 보트 로드 후 병 생성
+      createBottles();
     },
     undefined,
     (error) => {
@@ -118,19 +202,19 @@ function init() {
 
   const skyUniforms = sky.material.uniforms;
   // 공기 속 먼지의 양 - 클수록 하늘이 흐리고 탁하다
-  skyUniforms["turbidity"].value = 2;
+  skyUniforms["turbidity"].value = 0.2;
   // 하늘의 파란색 정도 - 클수록 하늘이 파랗고 선명
-  skyUniforms["rayleigh"].value = 2;
+  skyUniforms["rayleigh"].value = 0.1;
   // 먼지에 의한 빛의 산란 정도 - 하늘의 색상이나 강도에 영향을 미친다
-  skyUniforms["mieCoefficient"].value = 0.005;
+  skyUniforms["mieCoefficient"].value = 0.003;
   // 햇빛의 산란정도 - 하늘의 색상이나 햇빛이 어떻게 퍼지는지
-  skyUniforms["mieDirectionalG"].value = 0.8;
+  skyUniforms["mieDirectionalG"].value = 0.7;
 
   // elevation은 태양이 하늘에서 얼마나 높은지, azimuth는 태양이 얼마나 동쪽 또는 서쪽에 위치하는지
   // elevation은 0은 수평선, 90도는 정수리 위쪽
   // azimut는 -180도에서 180도까지의 범위를 가지며, -180은 서쪽, 0도는 남쪽, 180도는 동쪽
   const parameters = {
-    elevation: 2,
+    elevation: 5,
     azimuth: 180,
   };
 
@@ -156,14 +240,8 @@ function init() {
 
   updateSun();
 
-  // 물리적 메쉬 추가 (예시로 박스)
-  // const geometry = new THREE.BoxGeometry(30, 30, 30);
-  // const material = new THREE.MeshStandardMaterial({ roughness: 0 });
-  // mesh = new THREE.Mesh(geometry, material);
-  // scene.add(mesh);
-
   // OrbitControls 설정 - 카메라를 마우스로 조작할 수 있게 해주는 컨트롤러
-  //
+
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.target.set(0, 10, 0);
@@ -181,8 +259,6 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// 여기부터 다시 이해------월요일
-
 function animate() {
   render();
   requestAnimationFrame(animate);
@@ -192,13 +268,11 @@ function render() {
   const time = performance.now() * 0.001;
 
   if (boat) {
-    // boat.rotation.y = time * 0.5; // 보트가 회전하도록 애니메이션
-
-    boat.position.y = Math.sin(time) * 0.7 - 11; // 보트가 물 위에서 물결처럼 움직이도록 설정
+    boat.position.y = Math.sin(time) * 0.7 + 4; // 보트가 물 위에서 물결처럼 움직이도록 설정
   }
 
   // 물 애니메이션
-  water.material.uniforms["time"].value += 1.0 / 60.0;
+  water.material.uniforms["time"].value += 1.0 / 90.0;
 
   renderer.render(scene, camera);
 }
@@ -211,6 +285,7 @@ const openWriteLetterModal = () => {
 };
 
 const openLetterModal = () => {
+  console.error("클릭");
   showLetterModal.value = true;
 };
 </script>
