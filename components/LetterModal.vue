@@ -11,7 +11,6 @@
         </div>
         <div class="letter-sender">From. 싱싱여니</div>
       </div>
-      <button class="send-button" @click="handleSendDM">편지 보내기</button>
     </div>
   </div>
 </template>
@@ -89,14 +88,5 @@ const handleSendDM = () => {};
 .letter-sender {
   margin-top: 2vh;
   font-size: clamp(1rem, 1.5vw, 1.5rem);
-}
-
-.send-button {
-  margin-top: 2vh;
-  width: 90%;
-  height: 8%;
-  font-size: 20px;
-  border-radius: 10px;
-  background: lightblue;
 }
 </style>

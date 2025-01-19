@@ -11,9 +11,16 @@
 </template>
 
 <script setup lang="ts">
-const handleYesBtn = () => {};
+import { useRouter } from "vue-router";
+const router = useRouter();
 
-const handleNoBtn = () => {};
+const handleYesBtn = () => {
+  router.push("/signup");
+};
+
+const handleNoBtn = () => {
+  router.push("/signin");
+};
 </script>
 
 <style lang="scss" scoped>
@@ -26,7 +33,7 @@ const handleNoBtn = () => {};
 }
 
 .question {
-  font-size: 25px;
+  font-size: 30px;
   font-weight: bold;
 }
 
@@ -36,16 +43,19 @@ const handleNoBtn = () => {};
 }
 
 button {
-  width: 200px;
+  width: 250px;
   height: 400px;
   border-radius: 20px;
+  padding: 10px;
 }
 
 .yes-btn {
   background-color: lightblue;
+  font-size: 20px;
 }
 
 .no-btn {
   background-color: lightgray;
+  font-size: 20px;
 }
 </style>

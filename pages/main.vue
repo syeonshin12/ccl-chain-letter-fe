@@ -33,6 +33,13 @@ import { Sky } from "three/examples/jsm/objects/Sky";
 import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"; // GLTFLoader 임포트
 
+// FBXLoader 추가
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
+
+// 아바타 관련 변수 선언
+let avatar: THREE.Group | null = null;
+let avatarMixer: THREE.AnimationMixer | null = null;
+
 const bottles = ref<{ position: { x: number; y: number; z: number } }[]>([]); // 병 배열
 
 const container = ref<HTMLElement | null>(null);
@@ -43,6 +50,8 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let boat: THREE.Group | null = null;
+// Clock 객체 선언 및 초기화
+let clock: THREE.Clock;
 
 onMounted(() => {
   init();
@@ -127,6 +136,9 @@ function createBottles() {
 function init() {
   if (!container.value) return;
 
+  // Clock 초기화
+  clock = new THREE.Clock();
+
   // WebGLRenderer 설정
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -135,6 +147,31 @@ function init() {
 
   // Scene 설정
   scene = new THREE.Scene();
+
+  // FBXLoader를 사용하여 아바타 로드
+  const fbxLoader = new FBXLoader();
+  fbxLoader.load(
+    "/sitting_avatar.fbx", // 아바타 FBX 파일 경로
+    (fbx) => {
+      avatar = fbx;
+
+      // 아바타 크기 및 위치 조정
+      avatar.scale.set(0.4, 0.4, 0.4); // 필요 시 크기 조정
+      avatar.position.set(-20, 0, -40); // 보트와 동일한 위치에 배치
+      scene.add(avatar);
+
+      // 애니메이션 클립이 있으면 AnimationMixer를 설정
+      if (fbx.animations.length > 0) {
+        avatarMixer = new THREE.AnimationMixer(avatar);
+        const action = avatarMixer.clipAction(fbx.animations[0]); // 첫 번째 애니메이션 클립
+        action.play();
+      }
+    },
+    undefined,
+    (error) => {
+      console.error("아바타 로드 실패:", error);
+    }
+  );
 
   // Camera 설정
   camera = new THREE.PerspectiveCamera(
@@ -265,10 +302,16 @@ function animate() {
 }
 
 function render() {
+  const delta = clock.getDelta();
   const time = performance.now() * 0.001;
 
   if (boat) {
     boat.position.y = Math.sin(time) * 0.7 + 4; // 보트가 물 위에서 물결처럼 움직이도록 설정
+  }
+
+  // 아바타 애니메이션 업데이트
+  if (avatarMixer) {
+    avatarMixer.update(delta);
   }
 
   // 물 애니메이션

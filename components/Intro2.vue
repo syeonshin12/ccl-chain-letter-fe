@@ -10,7 +10,7 @@
     <div class="intro-content">
       <span class="text" v-html="displayedText"></span>
     </div>
-    <button @click="emitNext">탐험을 시작하시겠습니까?</button>
+    <button @click="emitNext" class="next-btn">탐험을 시작하시겠습니까?</button>
   </div>
 </template>
 
@@ -83,5 +83,9 @@ onMounted(() => {
 .text {
   white-space: pre-wrap; // \n을 줄 바꿈으로 처리
   font-family: monospace; // 타이핑 느낌을 살리기 위한 고정폭 폰트
+}
+
+.next-btn {
+  font-size: 20px;
 }
 </style>
