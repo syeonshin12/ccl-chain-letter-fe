@@ -183,6 +183,21 @@ function init() {
   );
   camera.position.set(20, 70, 170); // 카메라를 더 높은 위치로 이동
 
+  // DirectionalLight (메인 조명)
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // 밝기 증가
+  directionalLight.position.set(100, 100, 100);
+  directionalLight.castShadow = true;
+  scene.add(directionalLight);
+
+  // AmbientLight (부드러운 환경광)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 밝기 증가
+  scene.add(ambientLight);
+
+  // PointLight (보조 조명)
+  const pointLight = new THREE.PointLight(0xffffff, 1, 500); // 추가적인 빛
+  pointLight.position.set(50, 50, 50);
+  scene.add(pointLight);
+
   // Sun Vector 설정 - vector3는 3D 좌표 표현하는 클래스. 물체의 위치나 방향 나타냄
   // 태양의 방향 필요할때 사용. 물의 표면이나 하늘에서 태양의 위치가 영향을 미치게 되면 이 벡터 사용
   sun = new THREE.Vector3();
