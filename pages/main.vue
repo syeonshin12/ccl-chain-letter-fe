@@ -32,11 +32,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"; //
 import { Sky } from "three/examples/jsm/objects/Sky";
 import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"; // GLTFLoader 임포트
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader"; // FBXLoader 추가
 
-// FBXLoader 추가
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
-
-// 아바타 관련 변수 선언
 let avatar: THREE.Group | null = null;
 let avatarMixer: THREE.AnimationMixer | null = null;
 
@@ -50,12 +47,12 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let boat: THREE.Group | null = null;
-// Clock 객체 선언 및 초기화
 let clock: THREE.Clock;
 
 onMounted(() => {
   init();
   animate();
+  setupKeyControls(); // 키 이벤트 설정
 });
 
 onBeforeUnmount(() => {
@@ -136,14 +133,13 @@ function createBottles() {
 function init() {
   if (!container.value) return;
 
-  // Clock 초기화
   clock = new THREE.Clock();
 
   // WebGLRenderer 설정
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  container.value.appendChild(renderer.domElement); // ref로 참조한 container에 렌더러 추가
+  container.value.appendChild(renderer.domElement);
 
   // Scene 설정
   scene = new THREE.Scene();
@@ -151,19 +147,15 @@ function init() {
   // FBXLoader를 사용하여 아바타 로드
   const fbxLoader = new FBXLoader();
   fbxLoader.load(
-    "/sitting_avatar.fbx", // 아바타 FBX 파일 경로
+    "/standing_avatar.fbx",
     (fbx) => {
       avatar = fbx;
-
-      // 아바타 크기 및 위치 조정
-      avatar.scale.set(0.4, 0.4, 0.4); // 필요 시 크기 조정
-      avatar.position.set(-20, 0, -40); // 보트와 동일한 위치에 배치
+      avatar.scale.set(0.4, 0.4, 0.4);
       scene.add(avatar);
 
-      // 애니메이션 클립이 있으면 AnimationMixer를 설정
       if (fbx.animations.length > 0) {
         avatarMixer = new THREE.AnimationMixer(avatar);
-        const action = avatarMixer.clipAction(fbx.animations[0]); // 첫 번째 애니메이션 클립
+        const action = avatarMixer.clipAction(fbx.animations[0]);
         action.play();
       }
     },
@@ -181,7 +173,7 @@ function init() {
     1,
     20000
   );
-  camera.position.set(20, 70, 170); // 카메라를 더 높은 위치로 이동
+  camera.position.set(20, 70, 170);
 
   // DirectionalLight (메인 조명)
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // 밝기 증가
@@ -220,9 +212,7 @@ function init() {
     fog: scene.fog !== undefined,
   });
   water.rotation.x = -Math.PI / 2;
-
   water.material.uniforms["alpha"].value = 1;
-
   scene.add(water);
 
   const loader = new GLTFLoader();
@@ -236,9 +226,17 @@ function init() {
       boat.position.set(0, 0, -40); // 보트의 초기 위치 설정
 
       boat.rotation.y = (Math.PI * 240) / 180;
-      scene.add(boat); // 보트 씬에 추가
+      scene.add(boat);
 
-      // 보트 로드 후 병 생성
+      const box = new THREE.Box3().setFromObject(boat);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      if (avatar) {
+        avatar.position.copy(center);
+        // avatar.position.y -= 1;
+      }
+
       createBottles();
     },
     undefined,
@@ -311,9 +309,61 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+let boatSpeed = 2; // 보트 이동 속도 설정
+let cameraOffset = new THREE.Vector3(0, 10, -30); // 카메라가 보트 뒤쪽에 위치하도록 설정
+let boatTargetPosition = new THREE.Vector3(); // 보트의 타겟 위치 설정
+
+function setupKeyControls() {
+  window.addEventListener("keydown", onKeyDown); // 키보드 이벤트 리스너 설정
+}
+
+function onKeyDown(event: KeyboardEvent) {
+  if (!boat) return;
+
+  // 화살표 키에 따라 보트의 위치를 조정
+  switch (event.key) {
+    case "ArrowUp": // 위 화살표 (보트 앞쪽으로 이동)
+      boat.position.z -= boatSpeed;
+      break;
+    case "ArrowDown": // 아래 화살표 (보트 뒤쪽으로 이동)
+      boat.position.z += boatSpeed;
+      break;
+    case "ArrowLeft": // 왼쪽 화살표 (보트 왼쪽으로 이동)
+      boat.position.x -= boatSpeed;
+      break;
+    case "ArrowRight": // 오른쪽 화살표 (보트 오른쪽으로 이동)
+      boat.position.x += boatSpeed;
+      break;
+  }
+
+  // 보트가 이동할 때마다 카메라 위치를 갱신
+  // updateCameraPosition();
+}
+
+function updateCameraPosition() {
+  if (!boat) return;
+
+  // 카메라는 항상 보트의 뒤쪽에 위치하도록 설정
+  boatTargetPosition.copy(boat.position).add(cameraOffset); // 카메라가 따라갈 목표 위치 계산
+  camera.position.lerp(boatTargetPosition, 0.1); // 카메라를 부드럽게 이동시킴
+
+  // 카메라는 항상 보트를 바라보도록 설정
+  controls.target.copy(boat.position); // 카메라가 보트를 바라보게 설정
+  controls.update(); // OrbitControls 업데이트
+}
+
 function animate() {
   render();
   requestAnimationFrame(animate);
+
+  if (boat && avatar) {
+    const boatPosition = boat.position;
+    // const boatHeight = boat.scale.y / 2;
+
+    avatar.position.x = boatPosition.x;
+    avatar.position.z = boatPosition.z;
+    avatar.position.y = boatPosition.y;
+  }
 }
 
 function render() {
@@ -321,15 +371,13 @@ function render() {
   const time = performance.now() * 0.001;
 
   if (boat) {
-    boat.position.y = Math.sin(time) * 0.7 + 4; // 보트가 물 위에서 물결처럼 움직이도록 설정
+    boat.position.y = Math.sin(time) * 0.7 + 4;
   }
 
-  // 아바타 애니메이션 업데이트
   if (avatarMixer) {
     avatarMixer.update(delta);
   }
 
-  // 물 애니메이션
   water.material.uniforms["time"].value += 1.0 / 90.0;
 
   renderer.render(scene, camera);
