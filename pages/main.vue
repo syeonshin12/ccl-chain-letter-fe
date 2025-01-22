@@ -309,7 +309,8 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-let boatSpeed = 2; // 보트 이동 속도 설정
+let boatSpeed = 2; // 보트 이동 속도
+let boatRotationSpeed = Math.PI / 30; // 보트 회전 속도 (기본적으로 5도씩 회전)
 let cameraOffset = new THREE.Vector3(0, 10, -30); // 카메라가 보트 뒤쪽에 위치하도록 설정
 let boatTargetPosition = new THREE.Vector3(); // 보트의 타겟 위치 설정
 
@@ -320,19 +321,21 @@ function setupKeyControls() {
 function onKeyDown(event: KeyboardEvent) {
   if (!boat) return;
 
-  // 화살표 키에 따라 보트의 위치를 조정
+  // 보트의 회전 방향 처리
   switch (event.key) {
     case "ArrowUp": // 위 화살표 (보트 앞쪽으로 이동)
-      boat.position.z -= boatSpeed;
+      boat.position.x += Math.sin(boat.rotation.y) * boatSpeed;
+      boat.position.z -= Math.cos(boat.rotation.y) * boatSpeed;
       break;
     case "ArrowDown": // 아래 화살표 (보트 뒤쪽으로 이동)
-      boat.position.z += boatSpeed;
+      boat.position.x -= Math.sin(boat.rotation.y) * boatSpeed;
+      boat.position.z += Math.cos(boat.rotation.y) * boatSpeed;
       break;
-    case "ArrowLeft": // 왼쪽 화살표 (보트 왼쪽으로 이동)
-      boat.position.x -= boatSpeed;
+    case "ArrowLeft": // 왼쪽 화살표 (보트 왼쪽으로 회전)
+      boat.rotation.y += boatRotationSpeed; // 회전 (시계 반대방향)
       break;
-    case "ArrowRight": // 오른쪽 화살표 (보트 오른쪽으로 이동)
-      boat.position.x += boatSpeed;
+    case "ArrowRight": // 오른쪽 화살표 (보트 오른쪽으로 회전)
+      boat.rotation.y -= boatRotationSpeed; // 회전 (시계방향)
       break;
   }
 
@@ -358,8 +361,6 @@ function animate() {
 
   if (boat && avatar) {
     const boatPosition = boat.position;
-    // const boatHeight = boat.scale.y / 2;
-
     avatar.position.x = boatPosition.x;
     avatar.position.z = boatPosition.z;
     avatar.position.y = boatPosition.y;
@@ -371,7 +372,7 @@ function render() {
   const time = performance.now() * 0.001;
 
   if (boat) {
-    boat.position.y = Math.sin(time) * 0.7 + 4;
+    boat.position.y = Math.sin(time) * 0.7 + 4; // 보트의 부드러운 움직임 추가
   }
 
   if (avatarMixer) {
