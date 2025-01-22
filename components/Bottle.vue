@@ -1,4 +1,3 @@
-// Bottle.vue
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount } from "vue";
 import * as THREE from "three";
@@ -15,10 +14,13 @@ const props = defineProps<{
 let bottleModel: THREE.Object3D | null = null;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
+let clock: THREE.Clock; // 애니메이션 타이머
 
 // 모델 로드 후 병 추가
 onMounted(() => {
   const loader = new GLTFLoader();
+  clock = new THREE.Clock(); // Clock 생성
+
   loader.load(
     "/message_bottle.glb",
     (gltf) => {
@@ -27,16 +29,26 @@ onMounted(() => {
       // 병의 위치와 크기 설정
       bottleModel.position.set(
         props.position.x,
-        props.position.y,
+        props.position.y - 1, // y 값을 더 낮춰서 병을 더 잠기게
         props.position.z
       );
       bottleModel.scale.set(0.04, 0.04, 0.04);
+
+      // 초기 기울기 설정
+      bottleModel.rotation.set(
+        THREE.MathUtils.degToRad(35), // X축 기울기 (35도)
+        THREE.MathUtils.degToRad(0), // Y축 회전 없음
+        THREE.MathUtils.degToRad(20) // Z축 기울기 (20도)
+      );
 
       // 부모 Scene에 병 추가
       props.scene.add(bottleModel);
 
       // 클릭 이벤트를 처리할 수 있도록 raycaster 설정
       window.addEventListener("click", onClick);
+
+      // 애니메이션 루프 시작
+      animate();
     },
     undefined,
     (error) => {
@@ -64,6 +76,21 @@ function onClick(event: MouseEvent) {
     // 병을 클릭한 경우
     props.onClick(); // 부모에서 전달된 클릭 핸들러 실행
   }
+}
+
+// 애니메이션 함수
+function animate() {
+  if (!bottleModel) return;
+
+  const elapsedTime = clock.getElapsedTime(); // 경과 시간
+
+  // 병의 출렁이는 효과
+  bottleModel.rotation.x =
+    THREE.MathUtils.degToRad(35) + Math.sin(elapsedTime * 2) * 0.1; // X축 출렁임
+  bottleModel.rotation.z =
+    THREE.MathUtils.degToRad(20) + Math.cos(elapsedTime * 2) * 0.1; // Z축 출렁임
+
+  requestAnimationFrame(animate); // 애니메이션 루프
 }
 
 // 컴포넌트가 언마운트될 때 이벤트 리스너 제거
