@@ -28,16 +28,16 @@
 
 <script setup lang="ts">
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"; // 경로 수정
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Sky } from "three/examples/jsm/objects/Sky";
 import { Water } from "three/examples/jsm/objects/Water";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"; // GLTFLoader 임포트
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader"; // FBXLoader 추가
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 
 let avatar: THREE.Group | null = null;
 let avatarMixer: THREE.AnimationMixer | null = null;
 
-const bottles = ref<{ position: { x: number; y: number; z: number } }[]>([]); // 병 배열
+const bottles = ref<{ position: { x: number; y: number; z: number } }[]>([]);
 
 const container = ref<HTMLElement | null>(null);
 let sun: THREE.Vector3;
@@ -49,10 +49,21 @@ let controls: OrbitControls;
 let boat: THREE.Group | null = null;
 let clock: THREE.Clock;
 
+// 보트와 아바타를 함께 담는 그룹
+let boatGroup = new THREE.Group();
+
+// 키 상태를 저장할 객체 (키가 눌려있는지 여부)
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+};
+
 onMounted(() => {
   init();
   animate();
-  setupKeyControls(); // 키 이벤트 설정
+  setupKeyControls();
 });
 
 onBeforeUnmount(() => {
@@ -67,29 +78,22 @@ function getRandomPosition(
 ) {
   let position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   let distanceFromBoat = 0;
-  let distanceBetweenBottles = Infinity; // 시작할 때는 무한대로 설정
-
-  let attempts = 0; // 최대 시도 횟수 (무한 루프 방지)
-  const maxAttempts = 100; // 시도 횟수 제한
+  let distanceBetweenBottles = Infinity;
+  let attempts = 0;
+  const maxAttempts = 100;
 
   do {
     if (!boat) return position;
-
-    // 랜덤 위치 생성 (보트의 위치를 중심으로 생성되도록 범위 조정)
     position = {
-      x: boat.position.x + Math.random() * 200 - 100, // 보트 주변 -100 ~ 100 범위
-      y: Math.random() * 5 + 2, // 약간 떠 있는 효과
-      z: boat.position.z + Math.random() * 200 - 100, // 보트 주변 -100 ~ 100 범위
+      x: boat.position.x + Math.random() * 200 - 100,
+      y: Math.random() * 5 + 2,
+      z: boat.position.z + Math.random() * 200 - 100,
     };
-
-    // 보트와의 거리 계산
     distanceFromBoat = Math.sqrt(
       (position.x - boat.position.x) ** 2 +
         (position.y - boat.position.y) ** 2 +
         (position.z - boat.position.z) ** 2
     );
-
-    // 병들 간의 최소 거리 체크
     if (bottles.value.length > 0) {
       distanceBetweenBottles = Math.min(
         ...bottles.value.map((bottle) => {
@@ -100,28 +104,23 @@ function getRandomPosition(
         })
       );
     }
-
-    attempts++; // 시도 횟수 증가
+    attempts++;
     if (attempts > maxAttempts) {
       console.warn("최대 시도 횟수를 초과했습니다. 병 생성 실패.");
-      return position; // 최대 시도 횟수 초과시 그냥 반환
+      return position;
     }
   } while (
     distanceFromBoat < minDistanceFromBoat ||
     distanceBetweenBottles < minDistanceBetweenBottles
-  ); // 두 조건 모두 만족할 때까지 반복
-
+  );
   return position;
 }
 
 function createBottles() {
   if (!boat) return;
-
-  const minDistanceFromBoat = 80; // 보트와 최소  거리 이상
-  const minDistanceBetweenBottles = 25; // 병들 간 최소 거리 설정
-
+  const minDistanceFromBoat = 80;
+  const minDistanceBetweenBottles = 25;
   for (let i = 0; i < 15; i++) {
-    // 병의 위치가 보트와 겹치지 않으면서, 병들 간에도 겹치지 않도록 위치 생성
     const position = getRandomPosition(
       minDistanceFromBoat,
       minDistanceBetweenBottles
@@ -134,25 +133,33 @@ function init() {
   if (!container.value) return;
 
   clock = new THREE.Clock();
-
-  // WebGLRenderer 설정
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.value.appendChild(renderer.domElement);
 
-  // Scene 설정
   scene = new THREE.Scene();
+  scene.add(boatGroup); // 보트 그룹을 씬에 추가
 
-  // FBXLoader를 사용하여 아바타 로드
+  // 카메라 설정 (초기값은 이후 updateCameraPosition에서 업데이트 됨)
+  camera = new THREE.PerspectiveCamera(
+    55,
+    window.innerWidth / window.innerHeight,
+    1,
+    20000
+  );
+  camera.position.set(20, 70, 170);
+
+  // 아바타 로드 (FBXLoader)
   const fbxLoader = new FBXLoader();
   fbxLoader.load(
     "/standing_avatar.fbx",
     (fbx) => {
       avatar = fbx;
       avatar.scale.set(0.4, 0.4, 0.4);
-      scene.add(avatar);
-
+      // 보트 그룹에 추가하여 보트와 함께 움직이도록 함
+      avatar.position.set(0, 10, 0);
+      boatGroup.add(avatar);
       if (fbx.animations.length > 0) {
         avatarMixer = new THREE.AnimationMixer(avatar);
         const action = avatarMixer.clipAction(fbx.animations[0]);
@@ -165,37 +172,20 @@ function init() {
     }
   );
 
-  // Camera 설정
-  camera = new THREE.PerspectiveCamera(
-    // fov - 숫자가 낮으면 물체가 더 멀리 보임.
-    55,
-    window.innerWidth / window.innerHeight,
-    1,
-    20000
-  );
-  camera.position.set(20, 70, 170);
-
-  // DirectionalLight (메인 조명)
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // 밝기 증가
+  // 조명 설정
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
   directionalLight.position.set(100, 100, 100);
   directionalLight.castShadow = true;
   scene.add(directionalLight);
-
-  // AmbientLight (부드러운 환경광)
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 밝기 증가
-  scene.add(ambientLight);
-
-  // PointLight (보조 조명)
-  const pointLight = new THREE.PointLight(0xffffff, 1, 500); // 추가적인 빛
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const pointLight = new THREE.PointLight(0xffffff, 1, 500);
   pointLight.position.set(50, 50, 50);
   scene.add(pointLight);
 
-  // Sun Vector 설정 - vector3는 3D 좌표 표현하는 클래스. 물체의 위치나 방향 나타냄
-  // 태양의 방향 필요할때 사용. 물의 표면이나 하늘에서 태양의 위치가 영향을 미치게 되면 이 벡터 사용
   sun = new THREE.Vector3();
 
-  // Water (바다) 설정
-  const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
+  // 바다 설정
+  const waterGeometry = new THREE.PlaneGeometry(8000, 8000);
   water = new Water(waterGeometry, {
     textureWidth: 512,
     textureHeight: 512,
@@ -215,28 +205,30 @@ function init() {
   water.material.uniforms["alpha"].value = 1;
   scene.add(water);
 
+  // 보트 로드 (GLTFLoader)
   const loader = new GLTFLoader();
-
-  // 보트 모델 로드
   loader.load(
     "/boat.glb",
     (gltf) => {
       boat = gltf.scene;
-      boat.scale.set(30, 30, 30); // 보트 크기 조정 (필요 시 크기 변경)
-      boat.position.set(0, 0, -40); // 보트의 초기 위치 설정
+      boat.scale.set(30, 30, 30);
+      boat.position.set(0, 0, -40);
+      // 뱃머리가 전면(-Z 방향)을 향하도록 설정
+      boat.rotation.y = -Math.PI / 2;
+      boatGroup.add(boat);
 
-      boat.rotation.y = (Math.PI * 240) / 180;
-      scene.add(boat);
-
+      // 보트의 중심 계산
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
       box.getCenter(center);
-
+      // 아바타가 이미 로드되어 있다면 보트의 중심으로 위치 조정 (y축 오프셋 추가 가능)
       if (avatar) {
-        avatar.position.copy(center);
-        // avatar.position.y -= 1;
+        avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
+      } else {
+        console.warn(
+          "아바타가 아직 로드되지 않았습니다. 아바타 로드 후 위치를 업데이트 해주세요."
+        );
       }
-
       createBottles();
     },
     undefined,
@@ -249,25 +241,12 @@ function init() {
   const sky = new Sky();
   sky.scale.setScalar(10000);
   scene.add(sky);
-
   const skyUniforms = sky.material.uniforms;
-  // 공기 속 먼지의 양 - 클수록 하늘이 흐리고 탁하다
   skyUniforms["turbidity"].value = 0.2;
-  // 하늘의 파란색 정도 - 클수록 하늘이 파랗고 선명
   skyUniforms["rayleigh"].value = 0.1;
-  // 먼지에 의한 빛의 산란 정도 - 하늘의 색상이나 강도에 영향을 미친다
   skyUniforms["mieCoefficient"].value = 0.003;
-  // 햇빛의 산란정도 - 하늘의 색상이나 햇빛이 어떻게 퍼지는지
   skyUniforms["mieDirectionalG"].value = 0.7;
-
-  // elevation은 태양이 하늘에서 얼마나 높은지, azimuth는 태양이 얼마나 동쪽 또는 서쪽에 위치하는지
-  // elevation은 0은 수평선, 90도는 정수리 위쪽
-  // azimut는 -180도에서 180도까지의 범위를 가지며, -180은 서쪽, 0도는 남쪽, 180도는 동쪽
-  const parameters = {
-    elevation: 5,
-    azimuth: 180,
-  };
-
+  const parameters = { elevation: 5, azimuth: 180 };
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const sceneEnv = new THREE.Scene();
   let renderTarget: THREE.WebGLRenderTarget | undefined;
@@ -275,23 +254,18 @@ function init() {
   function updateSun() {
     const phi = THREE.MathUtils.degToRad(90 - parameters.elevation);
     const theta = THREE.MathUtils.degToRad(parameters.azimuth);
-
     sun.setFromSphericalCoords(1, phi, theta);
     sky.material.uniforms["sunPosition"].value.copy(sun);
     water.material.uniforms["sunDirection"].value.copy(sun).normalize();
-
     if (renderTarget !== undefined) renderTarget.dispose();
     sceneEnv.add(sky);
     renderTarget = pmremGenerator.fromScene(sceneEnv);
     scene.add(sky);
-
     scene.environment = renderTarget.texture;
   }
-
   updateSun();
 
-  // OrbitControls 설정 - 카메라를 마우스로 조작할 수 있게 해주는 컨트롤러
-
+  // OrbitControls 설정
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.target.set(0, 10, 0);
@@ -299,7 +273,6 @@ function init() {
   controls.maxDistance = 200.0;
   controls.update();
 
-  // 윈도우 리사이즈 이벤트
   window.addEventListener("resize", onWindowResize);
 }
 
@@ -309,78 +282,84 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-let boatSpeed = 2; // 보트 이동 속도
-let boatRotationSpeed = Math.PI / 30; // 보트 회전 속도 (기본적으로 5도씩 회전)
-let cameraOffset = new THREE.Vector3(0, 10, -30); // 카메라가 보트 뒤쪽에 위치하도록 설정
-let boatTargetPosition = new THREE.Vector3(); // 보트의 타겟 위치 설정
-
+// 기존 keydown 이벤트를 대체하여, 키 상태를 추적하는 방식으로 변경
 function setupKeyControls() {
-  window.addEventListener("keydown", onKeyDown); // 키보드 이벤트 리스너 설정
+  window.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key in keys) {
+      keys[event.key] = true;
+    }
+  });
+  window.addEventListener("keyup", (event: KeyboardEvent) => {
+    if (event.key in keys) {
+      keys[event.key] = false;
+    }
+  });
 }
 
-function onKeyDown(event: KeyboardEvent) {
-  if (!boat) return;
+// 속도 및 회전 관련 변수
+let boatSpeed = 30; // 단위: 속도 (크게 하면 더 빠르게 가속)
+let boatRotationSpeed = Math.PI / 2; // 초당 회전 각도
+let boatVelocity = new THREE.Vector3();
+let dampingFactor = 0.05; // 감쇠 계수
 
-  // 보트의 회전 방향 처리
-  switch (event.key) {
-    case "ArrowUp": // 위 화살표 (보트 앞쪽으로 이동)
-      boat.position.x += Math.sin(boat.rotation.y) * boatSpeed;
-      boat.position.z -= Math.cos(boat.rotation.y) * boatSpeed;
-      break;
-    case "ArrowDown": // 아래 화살표 (보트 뒤쪽으로 이동)
-      boat.position.x -= Math.sin(boat.rotation.y) * boatSpeed;
-      boat.position.z += Math.cos(boat.rotation.y) * boatSpeed;
-      break;
-    case "ArrowLeft": // 왼쪽 화살표 (보트 왼쪽으로 회전)
-      boat.rotation.y += boatRotationSpeed; // 회전 (시계 반대방향)
-      break;
-    case "ArrowRight": // 오른쪽 화살표 (보트 오른쪽으로 회전)
-      boat.rotation.y -= boatRotationSpeed; // 회전 (시계방향)
-      break;
+// 매 프레임마다 키 상태에 따라 속도와 회전을 업데이트
+function updateBoatMovement(delta: number) {
+  // 보트의 전방 벡터 (-Z가 기본 전방)
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
+    boatGroup.quaternion
+  );
+
+  // 키 입력에 따라 속도를 누적 (delta를 곱해 프레임 독립적으로 조정)
+  if (keys["ArrowUp"]) {
+    boatVelocity.add(forward.clone().multiplyScalar(-boatSpeed * delta));
+  }
+  if (keys["ArrowDown"]) {
+    boatVelocity.add(forward.clone().multiplyScalar(boatSpeed * delta));
   }
 
-  // 보트가 이동할 때마다 카메라 위치를 갱신
-  // updateCameraPosition();
+  // 좌우 회전은 속도 업데이트와 별개로 바로 적용
+  if (keys["ArrowLeft"]) {
+    boatGroup.rotateOnAxis(
+      new THREE.Vector3(0, 1, 0),
+      boatRotationSpeed * delta
+    );
+  }
+  if (keys["ArrowRight"]) {
+    boatGroup.rotateOnAxis(
+      new THREE.Vector3(0, 1, 0),
+      -boatRotationSpeed * delta
+    );
+  }
+
+  // 보트 위치 업데이트
+  boatGroup.position.add(boatVelocity);
+
+  // 감쇠 적용 (마찰 효과)
+  boatVelocity.multiplyScalar(1 - dampingFactor);
 }
 
 function updateCameraPosition() {
-  if (!boat) return;
-
-  // 카메라는 항상 보트의 뒤쪽에 위치하도록 설정
-  boatTargetPosition.copy(boat.position).add(cameraOffset); // 카메라가 따라갈 목표 위치 계산
-  camera.position.lerp(boatTargetPosition, 0.1); // 카메라를 부드럽게 이동시킴
-
-  // 카메라는 항상 보트를 바라보도록 설정
-  controls.target.copy(boat.position); // 카메라가 보트를 바라보게 설정
-  controls.update(); // OrbitControls 업데이트
+  if (!boatGroup) return;
+  let desiredCameraPosition = new THREE.Vector3();
+  desiredCameraPosition
+    .copy(boatGroup.position)
+    .add(new THREE.Vector3(0, 100, -250).applyQuaternion(boatGroup.quaternion));
+  camera.position.lerp(desiredCameraPosition, 0.05);
+  camera.lookAt(boatGroup.position.clone().add(new THREE.Vector3(0, 10, 0)));
 }
 
 function animate() {
-  render();
   requestAnimationFrame(animate);
-
-  if (boat && avatar) {
-    const boatPosition = boat.position;
-    avatar.position.x = boatPosition.x;
-    avatar.position.z = boatPosition.z;
-    avatar.position.y = boatPosition.y;
-  }
-}
-
-function render() {
   const delta = clock.getDelta();
-  const time = performance.now() * 0.001;
 
-  if (boat) {
-    boat.position.y = Math.sin(time) * 0.7 + 4; // 보트의 부드러운 움직임 추가
-  }
+  updateBoatMovement(delta);
+  updateCameraPosition();
 
   if (avatarMixer) {
     avatarMixer.update(delta);
   }
-
-  water.material.uniforms["time"].value += 1.0 / 90.0;
-
+  // 바다의 애니메이션 업데이트
+  water.material.uniforms["time"].value += delta;
   renderer.render(scene, camera);
 }
 
@@ -415,6 +394,7 @@ const openLetterModal = () => {
   display: flex;
   font-size: 20px;
 }
+
 .write {
   margin-right: 10px;
 }
