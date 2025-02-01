@@ -52,13 +52,15 @@ let clock: THREE.Clock;
 // 보트와 아바타를 함께 담는 그룹
 let boatGroup = new THREE.Group();
 
-// 키 상태를 저장할 객체 (키가 눌려있는지 여부)
-const keys = {
+type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+const keys: Record<ArrowKey, boolean> = {
   ArrowUp: false,
   ArrowDown: false,
   ArrowLeft: false,
   ArrowRight: false,
 };
+
+let isUserInteracting = false; // 사용자가 OrbitControls로 카메라를 조작 중인지 여부
 
 onMounted(() => {
   init();
@@ -141,7 +143,7 @@ function init() {
   scene = new THREE.Scene();
   scene.add(boatGroup); // 보트 그룹을 씬에 추가
 
-  // 카메라 설정 (초기값은 이후 updateCameraPosition에서 업데이트 됨)
+  // 카메라 설정 (OrbitControls가 카메라를 제어할 예정)
   camera = new THREE.PerspectiveCamera(
     55,
     window.innerWidth / window.innerHeight,
@@ -157,7 +159,6 @@ function init() {
     (fbx) => {
       avatar = fbx;
       avatar.scale.set(0.4, 0.4, 0.4);
-      // 보트 그룹에 추가하여 보트와 함께 움직이도록 함
       avatar.position.set(0, 10, 0);
       boatGroup.add(avatar);
       if (fbx.animations.length > 0) {
@@ -184,7 +185,7 @@ function init() {
 
   sun = new THREE.Vector3();
 
-  // 바다 설정
+  // 바다 설정 (크기 8000x8000)
   const waterGeometry = new THREE.PlaneGeometry(8000, 8000);
   water = new Water(waterGeometry, {
     textureWidth: 512,
@@ -221,13 +222,8 @@ function init() {
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
       box.getCenter(center);
-      // 아바타가 이미 로드되어 있다면 보트의 중심으로 위치 조정 (y축 오프셋 추가 가능)
       if (avatar) {
         avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
-      } else {
-        console.warn(
-          "아바타가 아직 로드되지 않았습니다. 아바타 로드 후 위치를 업데이트 해주세요."
-        );
       }
       createBottles();
     },
@@ -246,11 +242,10 @@ function init() {
   skyUniforms["rayleigh"].value = 0.1;
   skyUniforms["mieCoefficient"].value = 0.003;
   skyUniforms["mieDirectionalG"].value = 0.7;
-  const parameters = { elevation: 5, azimuth: 180 };
+  const parameters = { elevation: 5, azimuth: 360 };
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const sceneEnv = new THREE.Scene();
   let renderTarget: THREE.WebGLRenderTarget | undefined;
-
   function updateSun() {
     const phi = THREE.MathUtils.degToRad(90 - parameters.elevation);
     const theta = THREE.MathUtils.degToRad(parameters.azimuth);
@@ -265,13 +260,24 @@ function init() {
   }
   updateSun();
 
-  // OrbitControls 설정
+  // OrbitControls 설정 (사용자 입력을 허용)
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxPolarAngle = Math.PI * 0.495;
-  controls.target.set(0, 10, 0);
-  controls.minDistance = 40.0;
-  controls.maxDistance = 200.0;
+  controls.minDistance = 200.0;
+  controls.maxDistance = 500.0;
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  // 초기 target은 보트의 위치를 기준으로 설정
+  controls.target.copy(boatGroup.position).add(new THREE.Vector3(0, 10, 0));
   controls.update();
+
+  // 사용자 인터랙션 감지: 사용자가 마우스 또는 터치를 시작하면 follow 업데이트를 중단
+  renderer.domElement.addEventListener("pointerdown", () => {
+    isUserInteracting = true;
+  });
+  renderer.domElement.addEventListener("pointerup", () => {
+    isUserInteracting = false;
+  });
 
   window.addEventListener("resize", onWindowResize);
 }
@@ -282,42 +288,37 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// 기존 keydown 이벤트를 대체하여, 키 상태를 추적하는 방식으로 변경
+// 키보드 상태 업데이트
 function setupKeyControls() {
   window.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key in keys) {
-      keys[event.key] = true;
+      keys[event.key as ArrowKey] = true;
     }
   });
   window.addEventListener("keyup", (event: KeyboardEvent) => {
     if (event.key in keys) {
-      keys[event.key] = false;
+      keys[event.key as ArrowKey] = false;
     }
   });
 }
 
-// 속도 및 회전 관련 변수
-let boatSpeed = 30; // 단위: 속도 (크게 하면 더 빠르게 가속)
+// 보트 이동 관련 변수
+let boatSpeed = 20; // 가속도
 let boatRotationSpeed = Math.PI / 2; // 초당 회전 각도
 let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05; // 감쇠 계수
 
-// 매 프레임마다 키 상태에 따라 속도와 회전을 업데이트
+// 보트 이동 업데이트
 function updateBoatMovement(delta: number) {
-  // 보트의 전방 벡터 (-Z가 기본 전방)
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
     boatGroup.quaternion
   );
-
-  // 키 입력에 따라 속도를 누적 (delta를 곱해 프레임 독립적으로 조정)
   if (keys["ArrowUp"]) {
     boatVelocity.add(forward.clone().multiplyScalar(-boatSpeed * delta));
   }
   if (keys["ArrowDown"]) {
     boatVelocity.add(forward.clone().multiplyScalar(boatSpeed * delta));
   }
-
-  // 좌우 회전은 속도 업데이트와 별개로 바로 적용
   if (keys["ArrowLeft"]) {
     boatGroup.rotateOnAxis(
       new THREE.Vector3(0, 1, 0),
@@ -330,35 +331,36 @@ function updateBoatMovement(delta: number) {
       -boatRotationSpeed * delta
     );
   }
-
-  // 보트 위치 업데이트
   boatGroup.position.add(boatVelocity);
-
-  // 감쇠 적용 (마찰 효과)
   boatVelocity.multiplyScalar(1 - dampingFactor);
 }
 
-function updateCameraPosition() {
-  if (!boatGroup) return;
-  let desiredCameraPosition = new THREE.Vector3();
-  desiredCameraPosition
-    .copy(boatGroup.position)
-    .add(new THREE.Vector3(0, 100, -250).applyQuaternion(boatGroup.quaternion));
-  camera.position.lerp(desiredCameraPosition, 0.05);
-  camera.lookAt(boatGroup.position.clone().add(new THREE.Vector3(0, 10, 0)));
-}
-
+// animate 함수: 보트 이동 및 카메라 follow 업데이트
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
 
   updateBoatMovement(delta);
-  updateCameraPosition();
 
+  // 사용자가 조작 중이 아니라면 자동 follow 업데이트:
+  if (!isUserInteracting) {
+    // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞게 적용)
+    const camOffset = new THREE.Vector3(0, 100, -250);
+    camOffset.applyQuaternion(boatGroup.quaternion);
+    const desiredCamPos = boatGroup.position.clone().add(camOffset);
+    camera.position.lerp(desiredCamPos, 0.05);
+
+    // 타깃은 보트의 앞쪽(예, 보트 중심에서 위쪽 약간 오프셋)으로 설정
+    const targetOffset = new THREE.Vector3(0, 20, 0);
+    targetOffset.applyQuaternion(boatGroup.quaternion);
+    const desiredTarget = boatGroup.position.clone().add(targetOffset);
+    controls.target.lerp(desiredTarget, 0.05);
+  }
+
+  controls.update();
   if (avatarMixer) {
     avatarMixer.update(delta);
   }
-  // 바다의 애니메이션 업데이트
   water.material.uniforms["time"].value += delta;
   renderer.render(scene, camera);
 }
