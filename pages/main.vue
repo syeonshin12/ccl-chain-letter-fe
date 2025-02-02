@@ -74,6 +74,17 @@ onBeforeUnmount(() => {
   }
 });
 
+// 보트의 중심을 구해서 아바타의 위치를 업데이트하는 함수
+function updateAvatarPosition() {
+  if (!boat || !avatar) return;
+  // 보트의 경계 상자(Box3)에서 중심 계산
+  const box = new THREE.Box3().setFromObject(boat);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  // 여기서 (0, -5, 0) 오프셋은 보정용 값. 상황에 맞게 조정하세요.
+  avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
+}
+
 function getRandomPosition(
   minDistanceFromBoat: number,
   minDistanceBetweenBottles: number
@@ -143,7 +154,7 @@ function init() {
   scene = new THREE.Scene();
   scene.add(boatGroup); // 보트 그룹을 씬에 추가
 
-  // 카메라 설정 (OrbitControls가 카메라를 제어할 예정)
+  // 카메라 설정 (OrbitControls가 카메라 제어)
   camera = new THREE.PerspectiveCamera(
     55,
     window.innerWidth / window.innerHeight,
@@ -161,6 +172,8 @@ function init() {
       avatar.scale.set(0.4, 0.4, 0.4);
       avatar.position.set(0, 10, 0);
       boatGroup.add(avatar);
+      // 아바타 로드 완료 후 보트 중심 기반 위치 업데이트
+      updateAvatarPosition();
       if (fbx.animations.length > 0) {
         avatarMixer = new THREE.AnimationMixer(avatar);
         const action = avatarMixer.clipAction(fbx.animations[0]);
@@ -218,12 +231,13 @@ function init() {
       boat.rotation.y = -Math.PI / 2;
       boatGroup.add(boat);
 
-      // 보트의 중심 계산
+      // 보트의 중심 계산 및 아바타 위치 업데이트
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
       box.getCenter(center);
       if (avatar) {
-        avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
+        // updateAvatarPosition() 재호출하여 보트 중심 기준으로 아바타 위치 재설정
+        updateAvatarPosition();
       }
       createBottles();
     },
@@ -242,6 +256,7 @@ function init() {
   skyUniforms["rayleigh"].value = 0.1;
   skyUniforms["mieCoefficient"].value = 0.003;
   skyUniforms["mieDirectionalG"].value = 0.7;
+  // 해 파라미터: elevation, azimuth (필요에 따라 조정)
   const parameters = { elevation: 5, azimuth: 360 };
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const sceneEnv = new THREE.Scene();
@@ -267,11 +282,11 @@ function init() {
   controls.maxDistance = 500.0;
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  // 초기 target은 보트의 위치를 기준으로 설정
+  // 초기 target은 보트 그룹 위치 기준 (보트 중앙에서 약간 위쪽)
   controls.target.copy(boatGroup.position).add(new THREE.Vector3(0, 10, 0));
   controls.update();
 
-  // 사용자 인터랙션 감지: 사용자가 마우스 또는 터치를 시작하면 follow 업데이트를 중단
+  // 사용자 인터랙션 감지: pointerdown / pointerup 이벤트
   renderer.domElement.addEventListener("pointerdown", () => {
     isUserInteracting = true;
   });
@@ -342,15 +357,15 @@ function animate() {
 
   updateBoatMovement(delta);
 
-  // 사용자가 조작 중이 아니라면 자동 follow 업데이트:
+  // 사용자가 직접 조작 중이 아니라면 자동 follow 업데이트:
   if (!isUserInteracting) {
-    // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞게 적용)
+    // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞춰 적용)
     const camOffset = new THREE.Vector3(0, 100, -250);
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
     camera.position.lerp(desiredCamPos, 0.05);
 
-    // 타깃은 보트의 앞쪽(예, 보트 중심에서 위쪽 약간 오프셋)으로 설정
+    // 타깃은 보트 중심에서 약간 위쪽 (예: (0,20,0))으로 설정
     const targetOffset = new THREE.Vector3(0, 20, 0);
     targetOffset.applyQuaternion(boatGroup.quaternion);
     const desiredTarget = boatGroup.position.clone().add(targetOffset);

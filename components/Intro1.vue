@@ -44,7 +44,7 @@ function emitNext() {
 
 // 컴포넌트가 마운트되면 타이핑 효과 시작
 onMounted(() => {
-  intervalId = window.setInterval(typing, 100);
+  intervalId = window.setInterval(typing, 90);
 });
 </script>
 
