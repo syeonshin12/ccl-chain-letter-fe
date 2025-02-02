@@ -32,7 +32,7 @@ onMounted(() => {
         props.position.y - 1, // y 값을 더 낮춰서 병을 더 잠기게
         props.position.z
       );
-      bottleModel.scale.set(0.04, 0.04, 0.04);
+      bottleModel.scale.set(0.07, 0.07, 0.07);
 
       // 초기 기울기 설정
       bottleModel.rotation.set(

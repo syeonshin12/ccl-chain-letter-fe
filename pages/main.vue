@@ -97,16 +97,21 @@ function getRandomPosition(
 
   do {
     if (!boat) return position;
+    // x, z 범위를 -3000 ~ 3000으로 변경하여 바다 안쪽에 배치
     position = {
-      x: boat.position.x + Math.random() * 200 - 100,
-      y: Math.random() * 5 + 2,
-      z: boat.position.z + Math.random() * 200 - 100,
+      x: Math.random() * 6000 - 3000, // 6000 = 3000 - (-3000)
+      y: Math.random() * 5 + 2, // y 좌표는 그대로 2~7 사이
+      z: Math.random() * 6000 - 3000,
     };
+
+    // 보트와의 최소 거리 체크
     distanceFromBoat = Math.sqrt(
       (position.x - boat.position.x) ** 2 +
         (position.y - boat.position.y) ** 2 +
         (position.z - boat.position.z) ** 2
     );
+
+    // 기존 병들 간의 최소 거리 체크
     if (bottles.value.length > 0) {
       distanceBetweenBottles = Math.min(
         ...bottles.value.map((bottle) => {
@@ -360,7 +365,7 @@ function animate() {
   // 사용자가 직접 조작 중이 아니라면 자동 follow 업데이트:
   if (!isUserInteracting) {
     // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞춰 적용)
-    const camOffset = new THREE.Vector3(0, 100, -250);
+    const camOffset = new THREE.Vector3(0, 100, -300);
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
     camera.position.lerp(desiredCamPos, 0.05);
