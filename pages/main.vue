@@ -34,8 +34,6 @@ import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 
-
-
 // ─────────────────────────────────────────────
 // Skybox 초기화 함수 (제공해주신 코드)
 // ─────────────────────────────────────────────
@@ -64,7 +62,7 @@ function initSkybox() {
     side: THREE.BackSide,
   });
   const skyBox = new THREE.Mesh(
-    new THREE.BoxGeometry(4000, 2000, 4000),
+    new THREE.BoxGeometry(6000, 6000, 6000),
     material
   );
   skyBox.position.set(0, 0, 0);
@@ -195,12 +193,12 @@ function init() {
   scene.add(boatGroup); // 보트 그룹을 씬에 추가
 
   camera = new THREE.PerspectiveCamera(
-    55,
+    65,
     window.innerWidth / window.innerHeight,
     1,
     20000
   );
-  camera.position.set(20, 20, 70);
+  camera.position.set(20, 10, 40);
 
   const fbxLoader = new FBXLoader();
   fbxLoader.load(
@@ -209,6 +207,10 @@ function init() {
       avatar = fbx;
       avatar.scale.set(0.4, 0.4, 0.4);
       avatar.position.set(0, 10, 0);
+
+      avatar.rotation.y = THREE.MathUtils.degToRad(10); // Y축을 10도 회전
+      avatar.rotation.x = THREE.MathUtils.degToRad(-5); // X축을 -5도 기울임 (선택 사항)
+
       boatGroup.add(avatar);
       // 아바타 로드 완료 후 보트 중심 기반 위치 업데이트
       updateAvatarPosition();
@@ -234,7 +236,7 @@ function init() {
   sun = new THREE.Vector3();
 
   // 바다 설정 (크기 8000x8000)
-  const waterGeometry = new THREE.PlaneGeometry(8000, 8000);
+  const waterGeometry = new THREE.PlaneGeometry(6000, 6000);
   water = new Water(waterGeometry, {
     textureWidth: 512,
     textureHeight: 512,
@@ -262,7 +264,7 @@ function init() {
       boat = gltf.scene;
       boat.scale.set(30, 30, 30);
       boat.position.set(0, 0, -40);
-      boat.rotation.y = -Math.PI / 2;
+      boat.rotation.y = -Math.PI / 3;
       boatGroup.add(boat);
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
@@ -319,7 +321,7 @@ function setupKeyControls() {
 }
 
 // 보트 이동 관련 변수
-let boatSpeed = 20; // 가속도
+let boatSpeed = 10; // 가속도
 let boatRotationSpeed = Math.PI / 2; // 초당 회전 각도
 let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05; // 감쇠 계수
@@ -360,7 +362,7 @@ function animate() {
   // 사용자가 직접 조작 중이 아니라면 자동 follow 업데이트:
   if (!isUserInteracting) {
     // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞춰 적용)
-    const camOffset = new THREE.Vector3(0, 100, -300);
+    const camOffset = new THREE.Vector3(0, 30, -250);
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
     camera.position.lerp(desiredCamPos, 0.05);
