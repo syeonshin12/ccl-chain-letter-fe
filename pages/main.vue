@@ -66,7 +66,7 @@ function initSkybox() {
     material
   );
   skyBox.position.set(0, 0, 0);
-  console.error(skyBox, "sdfsfsf");
+
   scene.add(skyBox);
 }
 
@@ -100,6 +100,8 @@ const keys: Record<ArrowKey, boolean> = {
 };
 
 let isUserInteracting = false; // 사용자가 OrbitControls로 카메라를 조작 중인지 여부
+
+let islandMixer: THREE.AnimationMixer | null = null; // 전역 변수 선언
 
 onMounted(() => {
   init();
@@ -278,6 +280,29 @@ function init() {
     (error) => console.error("Boat load failed:", error)
   );
 
+  const islandLoader = new GLTFLoader();
+  islandLoader.load(
+    "/island_coconut.glb",
+    (gltf) => {
+      const islandCoconut = gltf.scene;
+      // 스케일과 위치는 필요에 따라 조절 (예: 바다 위에 떠 있는 듯한 위치)
+      islandCoconut.scale.set(8, 8, 8); // 모델에 따라 조정
+      islandCoconut.position.set(600, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
+      scene.add(islandCoconut);
+
+      if (gltf.animations && gltf.animations.length > 0) {
+        // AnimationMixer 생성 (islandCoconut 모델에 대해)
+        const mixer = new THREE.AnimationMixer(islandCoconut);
+
+        // 첫번째 애니메이션 클립을 가져와서 재생 (여러 클립이 있다면 원하는 클립을 선택할 수 있음)
+        const action = mixer.clipAction(gltf.animations[0]);
+        action.play();
+      }
+    },
+    undefined,
+    (error) => console.error("Island coconut model load failed:", error)
+  );
+
   // 기존 Sky 관련 코드를 제거하고, initSkybox() 호출하여 하늘박스를 적용
   initSkybox();
 
@@ -373,8 +398,14 @@ function animate() {
   }
 
   controls.update();
+
   if (avatarMixer) {
     avatarMixer.update(delta);
+  }
+
+  if (islandMixer) {
+    console.error("랄랄라");
+    islandMixer.update(delta);
   }
   water.material.uniforms["time"].value += delta;
   renderer.render(scene, camera);
