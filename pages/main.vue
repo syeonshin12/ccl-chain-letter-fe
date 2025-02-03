@@ -210,7 +210,7 @@ function init() {
       avatar.scale.set(0.4, 0.4, 0.4);
       avatar.position.set(0, 10, 0);
 
-      avatar.rotation.y = THREE.MathUtils.degToRad(10); // Y축을 10도 회전
+      avatar.rotation.y = THREE.MathUtils.degToRad(50); // Y축을 10도 회전
       avatar.rotation.x = THREE.MathUtils.degToRad(-5); // X축을 -5도 기울임 (선택 사항)
 
       boatGroup.add(avatar);
@@ -266,7 +266,7 @@ function init() {
       boat = gltf.scene;
       boat.scale.set(30, 30, 30);
       boat.position.set(0, 0, -40);
-      boat.rotation.y = -Math.PI / 3;
+      boat.rotation.y = -Math.PI / 2.5;
       boatGroup.add(boat);
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
@@ -287,15 +287,13 @@ function init() {
       const islandCoconut = gltf.scene;
       // 스케일과 위치는 필요에 따라 조절 (예: 바다 위에 떠 있는 듯한 위치)
       islandCoconut.scale.set(8, 8, 8); // 모델에 따라 조정
-      islandCoconut.position.set(600, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
+      islandCoconut.position.set(200, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
       scene.add(islandCoconut);
 
       if (gltf.animations && gltf.animations.length > 0) {
-        // AnimationMixer 생성 (islandCoconut 모델에 대해)
-        const mixer = new THREE.AnimationMixer(islandCoconut);
-
-        // 첫번째 애니메이션 클립을 가져와서 재생 (여러 클립이 있다면 원하는 클립을 선택할 수 있음)
-        const action = mixer.clipAction(gltf.animations[0]);
+        islandMixer = new THREE.AnimationMixer(islandCoconut);
+        const action = islandMixer.clipAction(gltf.animations[0]);
+        console.error(action);
         action.play();
       }
     },
@@ -404,7 +402,6 @@ function animate() {
   }
 
   if (islandMixer) {
-    console.error("랄랄라");
     islandMixer.update(delta);
   }
   water.material.uniforms["time"].value += delta;
