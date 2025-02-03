@@ -34,6 +34,47 @@ import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 
+
+
+// ─────────────────────────────────────────────
+// Skybox 초기화 함수 (제공해주신 코드)
+// ─────────────────────────────────────────────
+function initSkybox() {
+  // public 폴더 내의 파일 경로에 맞게 수정 (예: /sky_pos_x.png 등)
+  const urls = [
+    "/sky_pos_x.png",
+    "/sky_neg_x.png",
+    "/sky_pos_y.png",
+    "/sky_neg_y.png",
+    "/sky_neg_z.png",
+    "/sky_pos_z.png",
+  ];
+  const reflectionCube = new THREE.CubeTextureLoader().load(urls, () => {
+    console.error("로드 모두 완");
+  });
+  // reflectionCube.encoding = THREE.sRGBEncoding; // sRGB 인코딩 설정
+  reflectionCube.format = THREE.RGBAFormat; // RGBA 포맷 사용
+  const shader = THREE.ShaderLib["cube"];
+  shader.uniforms["tCube"].value = reflectionCube;
+  const material = new THREE.ShaderMaterial({
+    fragmentShader: shader.fragmentShader,
+    vertexShader: shader.vertexShader,
+    uniforms: shader.uniforms,
+    depthWrite: false,
+    side: THREE.BackSide,
+  });
+  const skyBox = new THREE.Mesh(
+    new THREE.BoxGeometry(4000, 2000, 4000),
+    material
+  );
+  skyBox.position.set(0, 0, 0);
+  console.error(skyBox, "sdfsfsf");
+  scene.add(skyBox);
+}
+
+// ─────────────────────────────────────────────
+// 기존 main 페이지 코드
+// ─────────────────────────────────────────────
 let avatar: THREE.Group | null = null;
 let avatarMixer: THREE.AnimationMixer | null = null;
 
@@ -74,14 +115,11 @@ onBeforeUnmount(() => {
   }
 });
 
-// 보트의 중심을 구해서 아바타의 위치를 업데이트하는 함수
 function updateAvatarPosition() {
   if (!boat || !avatar) return;
-  // 보트의 경계 상자(Box3)에서 중심 계산
   const box = new THREE.Box3().setFromObject(boat);
   const center = new THREE.Vector3();
   box.getCenter(center);
-  // 여기서 (0, -5, 0) 오프셋은 보정용 값. 상황에 맞게 조정하세요.
   avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
 }
 
@@ -110,8 +148,6 @@ function getRandomPosition(
         (position.y - boat.position.y) ** 2 +
         (position.z - boat.position.z) ** 2
     );
-
-    // 기존 병들 간의 최소 거리 체크
     if (bottles.value.length > 0) {
       distanceBetweenBottles = Math.min(
         ...bottles.value.map((bottle) => {
@@ -124,7 +160,7 @@ function getRandomPosition(
     }
     attempts++;
     if (attempts > maxAttempts) {
-      console.warn("최대 시도 횟수를 초과했습니다. 병 생성 실패.");
+      console.warn("Max attempts exceeded, bottle creation failed.");
       return position;
     }
   } while (
@@ -149,7 +185,6 @@ function createBottles() {
 
 function init() {
   if (!container.value) return;
-
   clock = new THREE.Clock();
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -159,16 +194,14 @@ function init() {
   scene = new THREE.Scene();
   scene.add(boatGroup); // 보트 그룹을 씬에 추가
 
-  // 카메라 설정 (OrbitControls가 카메라 제어)
   camera = new THREE.PerspectiveCamera(
     55,
     window.innerWidth / window.innerHeight,
     1,
     20000
   );
-  camera.position.set(20, 70, 170);
+  camera.position.set(20, 20, 70);
 
-  // 아바타 로드 (FBXLoader)
   const fbxLoader = new FBXLoader();
   fbxLoader.load(
     "/standing_avatar.fbx",
@@ -186,12 +219,9 @@ function init() {
       }
     },
     undefined,
-    (error) => {
-      console.error("아바타 로드 실패:", error);
-    }
+    (error) => console.error("Avatar load failed:", error)
   );
 
-  // 조명 설정
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
   directionalLight.position.set(100, 100, 100);
   directionalLight.castShadow = true;
@@ -232,66 +262,33 @@ function init() {
       boat = gltf.scene;
       boat.scale.set(30, 30, 30);
       boat.position.set(0, 0, -40);
-      // 뱃머리가 전면(-Z 방향)을 향하도록 설정
       boat.rotation.y = -Math.PI / 2;
       boatGroup.add(boat);
-
-      // 보트의 중심 계산 및 아바타 위치 업데이트
       const box = new THREE.Box3().setFromObject(boat);
       const center = new THREE.Vector3();
       box.getCenter(center);
       if (avatar) {
-        // updateAvatarPosition() 재호출하여 보트 중심 기준으로 아바타 위치 재설정
         updateAvatarPosition();
       }
       createBottles();
     },
     undefined,
-    (error) => {
-      console.error("보트 모델 로드 실패:", error);
-    }
+    (error) => console.error("Boat load failed:", error)
   );
 
-  // Skybox 설정
-  const sky = new Sky();
-  sky.scale.setScalar(10000);
-  scene.add(sky);
-  const skyUniforms = sky.material.uniforms;
-  skyUniforms["turbidity"].value = 0.2;
-  skyUniforms["rayleigh"].value = 0.1;
-  skyUniforms["mieCoefficient"].value = 0.003;
-  skyUniforms["mieDirectionalG"].value = 0.7;
-  // 해 파라미터: elevation, azimuth (필요에 따라 조정)
-  const parameters = { elevation: 5, azimuth: 360 };
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  const sceneEnv = new THREE.Scene();
-  let renderTarget: THREE.WebGLRenderTarget | undefined;
-  function updateSun() {
-    const phi = THREE.MathUtils.degToRad(90 - parameters.elevation);
-    const theta = THREE.MathUtils.degToRad(parameters.azimuth);
-    sun.setFromSphericalCoords(1, phi, theta);
-    sky.material.uniforms["sunPosition"].value.copy(sun);
-    water.material.uniforms["sunDirection"].value.copy(sun).normalize();
-    if (renderTarget !== undefined) renderTarget.dispose();
-    sceneEnv.add(sky);
-    renderTarget = pmremGenerator.fromScene(sceneEnv);
-    scene.add(sky);
-    scene.environment = renderTarget.texture;
-  }
-  updateSun();
+  // 기존 Sky 관련 코드를 제거하고, initSkybox() 호출하여 하늘박스를 적용
+  initSkybox();
 
-  // OrbitControls 설정 (사용자 입력을 허용)
   controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableRotate = true;
   controls.maxPolarAngle = Math.PI * 0.495;
   controls.minDistance = 200.0;
   controls.maxDistance = 500.0;
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  // 초기 target은 보트 그룹 위치 기준 (보트 중앙에서 약간 위쪽)
-  controls.target.copy(boatGroup.position).add(new THREE.Vector3(0, 10, 0));
+  controls.target.copy(boatGroup.position).add(new THREE.Vector3(0, 5, 0));
   controls.update();
 
-  // 사용자 인터랙션 감지: pointerdown / pointerup 이벤트
   renderer.domElement.addEventListener("pointerdown", () => {
     isUserInteracting = true;
   });
@@ -308,7 +305,6 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// 키보드 상태 업데이트
 function setupKeyControls() {
   window.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key in keys) {
@@ -355,7 +351,6 @@ function updateBoatMovement(delta: number) {
   boatVelocity.multiplyScalar(1 - dampingFactor);
 }
 
-// animate 함수: 보트 이동 및 카메라 follow 업데이트
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
@@ -369,9 +364,7 @@ function animate() {
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
     camera.position.lerp(desiredCamPos, 0.05);
-
-    // 타깃은 보트 중심에서 약간 위쪽 (예: (0,20,0))으로 설정
-    const targetOffset = new THREE.Vector3(0, 20, 0);
+    const targetOffset = new THREE.Vector3(0, 5, 0);
     targetOffset.applyQuaternion(boatGroup.quaternion);
     const desiredTarget = boatGroup.position.clone().add(targetOffset);
     controls.target.lerp(desiredTarget, 0.05);
