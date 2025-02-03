@@ -47,9 +47,7 @@ function initSkybox() {
     "/sky_neg_z.png",
     "/sky_pos_z.png",
   ];
-  const reflectionCube = new THREE.CubeTextureLoader().load(urls, () => {
-    console.error("로드 모두 완");
-  });
+  const reflectionCube = new THREE.CubeTextureLoader().load(urls);
   // reflectionCube.encoding = THREE.sRGBEncoding; // sRGB 인코딩 설정
   reflectionCube.format = THREE.RGBAFormat; // RGBA 포맷 사용
   const shader = THREE.ShaderLib["cube"];
@@ -287,13 +285,13 @@ function init() {
       const islandCoconut = gltf.scene;
       // 스케일과 위치는 필요에 따라 조절 (예: 바다 위에 떠 있는 듯한 위치)
       islandCoconut.scale.set(8, 8, 8); // 모델에 따라 조정
-      islandCoconut.position.set(200, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
+      islandCoconut.position.set(400, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
       scene.add(islandCoconut);
 
       if (gltf.animations && gltf.animations.length > 0) {
         islandMixer = new THREE.AnimationMixer(islandCoconut);
         const action = islandMixer.clipAction(gltf.animations[0]);
-        console.error(action);
+
         action.play();
       }
     },
@@ -416,7 +414,6 @@ const openWriteLetterModal = () => {
 };
 
 const openLetterModal = () => {
-  console.error("클릭");
   showLetterModal.value = true;
 };
 </script>
