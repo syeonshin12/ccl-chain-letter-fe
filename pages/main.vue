@@ -100,6 +100,7 @@ const keys: Record<ArrowKey, boolean> = {
 let isUserInteracting = false; // 사용자가 OrbitControls로 카메라를 조작 중인지 여부
 
 let islandMixer: THREE.AnimationMixer | null = null; // 전역 변수 선언
+let islandMixer2: THREE.AnimationMixer | null = null;
 
 onMounted(() => {
   init();
@@ -224,11 +225,11 @@ function init() {
     (error) => console.error("Avatar load failed:", error)
   );
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
   directionalLight.position.set(100, 100, 100);
   directionalLight.castShadow = true;
   scene.add(directionalLight);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
   const pointLight = new THREE.PointLight(0xffffff, 1, 500);
   pointLight.position.set(50, 50, 50);
   scene.add(pointLight);
@@ -278,6 +279,41 @@ function init() {
     (error) => console.error("Boat load failed:", error)
   );
 
+  // Lighthouse 모델 로드 (여기에 추가)
+  const lighthouseLoader = new GLTFLoader();
+  lighthouseLoader.load(
+    "/light_house.glb",
+    (gltf) => {
+      const lighthouse = gltf.scene;
+      lighthouse.scale.set(15, 15, 15);
+      lighthouse.position.set(-20, -10, 700); // 원하는 위치로 조정
+
+      lighthouse.rotation.y = Math.PI;
+
+      scene.add(lighthouse);
+    },
+    undefined,
+    (error) => console.error("Lighthouse load failed:", error)
+  );
+
+  // 산호초
+  // Lighthouse 모델 로드 (여기에 추가)
+  const reef1Loader = new GLTFLoader();
+  reef1Loader.load(
+    "/reef_1.glb",
+    (gltf) => {
+      const reef1 = gltf.scene;
+      reef1.scale.set(0.15, 0.15, 0.15);
+      reef1.position.set(-700, -10, 400); // 원하는 위치로 조정
+
+      reef1.rotation.y = Math.PI;
+
+      scene.add(reef1);
+    },
+    undefined,
+    (error) => console.error("Lighthouse load failed:", error)
+  );
+
   const islandLoader = new GLTFLoader();
   islandLoader.load(
     "/island_coconut.glb",
@@ -285,7 +321,7 @@ function init() {
       const islandCoconut = gltf.scene;
       // 스케일과 위치는 필요에 따라 조절 (예: 바다 위에 떠 있는 듯한 위치)
       islandCoconut.scale.set(8, 8, 8); // 모델에 따라 조정
-      islandCoconut.position.set(400, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
+      islandCoconut.position.set(500, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
       scene.add(islandCoconut);
 
       if (gltf.animations && gltf.animations.length > 0) {
@@ -297,6 +333,32 @@ function init() {
     },
     undefined,
     (error) => console.error("Island coconut model load failed:", error)
+  );
+
+  const islandLoader2 = new GLTFLoader();
+  islandLoader2.load(
+    "/island_coconut.glb",
+    (gltf) => {
+      const islandCoconut2 = gltf.scene;
+      islandCoconut2.scale.set(8, 8, 8);
+      // 예시 위치: x = -1200, y = 17, z = -800
+      islandCoconut2.position.set(-1200, 17, -800);
+      scene.add(islandCoconut2);
+
+      if (gltf.animations && gltf.animations.length > 0) {
+        // 별도의 애니메이션 믹서를 생성하거나, 여러 믹서를 배열에 담아 animate()에서 업데이트할 수 있음
+        const mixer2 = new THREE.AnimationMixer(islandCoconut2);
+        const action2 = mixer2.clipAction(gltf.animations[0]);
+        action2.play();
+
+        // 예시: animate() 함수에서 mixer2.update(delta)를 호출하는 코드를 추가해야 함.
+        // 또는 전역 변수나 배열에 저장해서 매 프레임 업데이트하도록 처리합니다.
+        // 여기서는 간단히 전역 변수 islandMixer2에 할당하는 예시:
+        islandMixer2 = mixer2;
+      }
+    },
+    undefined,
+    (error) => console.error("Island coconut 2 model load failed:", error)
   );
 
   // 기존 Sky 관련 코드를 제거하고, initSkybox() 호출하여 하늘박스를 적용
@@ -342,8 +404,8 @@ function setupKeyControls() {
 }
 
 // 보트 이동 관련 변수
-let boatSpeed = 10; // 가속도
-let boatRotationSpeed = Math.PI / 2; // 초당 회전 각도
+let boatSpeed = 7; // 가속도
+let boatRotationSpeed = Math.PI / 3; // 초당 회전 각도
 let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05; // 감쇠 계수
 
@@ -383,7 +445,7 @@ function animate() {
   // 사용자가 직접 조작 중이 아니라면 자동 follow 업데이트:
   if (!isUserInteracting) {
     // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞춰 적용)
-    const camOffset = new THREE.Vector3(0, 30, -250);
+    const camOffset = new THREE.Vector3(0, 50, -250);
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
     camera.position.lerp(desiredCamPos, 0.05);
@@ -402,6 +464,11 @@ function animate() {
   if (islandMixer) {
     islandMixer.update(delta);
   }
+
+  if (islandMixer2) {
+    islandMixer2?.update(delta);
+  }
+
   water.material.uniforms["time"].value += delta;
   renderer.render(scene, camera);
 }
