@@ -505,6 +505,30 @@ const openLetterModal = () => {
 }
 
 .write {
-  margin-right: 10px;
+  background: linear-gradient(
+    45deg,
+    #00d2ff,
+    #3a7bd5
+  ); /* 하늘색 계열 그라데이션 */
+  border: none;
+  border-radius: 25px; /* 둥근 모서리 */
+  padding: 12px 30px;
+  font-size: 23px;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s; /* 부드러운 애니메이션 효과 */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 버튼 그림자 */
+}
+
+.write:hover {
+  transform: scale(1.05); /* 마우스 오버 시 살짝 커짐 */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.write:active {
+  transform: scale(0.98); /* 클릭 시 약간 줄어드는 효과 */
 }
 </style>
