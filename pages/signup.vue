@@ -18,7 +18,7 @@
         {{ errorMessage || successMessage }}
       </div>
     </div>
-    <!-- '입장하기' 버튼이 성공 메시지와 함께 나타나도록 -->
+    <!-- '입장하기' 버튼은 성공 메시지가 있을 때 나타납니다 -->
     <div v-if="successMessage">
       <button class="enter-btn" @click="enter">입장하기</button>
     </div>
@@ -28,27 +28,43 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+
 const router = useRouter();
 
 const nickname = ref("");
 const errorMessage = ref("");
 const successMessage = ref("");
 
-const checkNickname = () => {
+const checkNickname = async () => {
+  // 입력값 체크
   if (!nickname.value) {
     errorMessage.value = "닉네임을 입력해주세요!";
     successMessage.value = "";
     return;
   }
 
-  const isDuplicate = ["user1", "user2", "admin"].includes(nickname.value);
+  try {
+    // useNicknameCheck를 통해 API 호출
+    const result = await useNicknameCheck(nickname.value);
 
-  if (isDuplicate) {
-    errorMessage.value = "이미 사용 중인 닉네임입니다.";
+    console.error(result, "결과여 중복 결과");
+    // 정상 응답(code가 0)인 경우
+    if (result && result.code === 0) {
+      // result.data가 true이면 이미 사용 중, false이면 사용 가능
+      if (result.data) {
+        errorMessage.value = "이미 사용 중인 닉네임입니다.";
+        successMessage.value = "";
+      } else {
+        errorMessage.value = "";
+        successMessage.value = "사용 가능한 닉네임입니다!";
+      }
+    } else {
+      errorMessage.value = "API 응답이 올바르지 않습니다.";
+      successMessage.value = "";
+    }
+  } catch (err: any) {
+    errorMessage.value = err.message || "알 수 없는 오류가 발생했습니다.";
     successMessage.value = "";
-  } else {
-    errorMessage.value = "";
-    successMessage.value = "사용 가능한 닉네임입니다!";
   }
 };
 
@@ -58,7 +74,7 @@ const clearError = () => {
 };
 
 const enter = () => {
-  // 닉네임 회원가입 및 로그인 로직
+  // 닉네임 회원가입 및 로그인 로직 후, 메인 페이지로 이동
   router.push("/main");
 };
 </script>
@@ -89,9 +105,9 @@ const enter = () => {
 }
 
 .input {
-  font-size: 1.2rem; /* 글자 크기 키우기 */
-  padding: 1rem; /* 입력창 패딩을 키워서 크기 확장 */
-  width: 80%; /* 입력창 넓이 증가 */
+  font-size: 1.2rem;
+  padding: 1rem;
+  width: 80%;
   border: 2px solid #ccc;
   border-radius: 8px;
   outline: none;
@@ -101,8 +117,8 @@ const enter = () => {
 }
 
 .check-btn {
-  font-size: 1.2rem; /* 버튼 글자 크기 키우기 */
-  padding: 1rem; /* 버튼 패딩 키우기 */
+  font-size: 1.2rem;
+  padding: 1rem;
   background-color: #007bff;
   color: white;
   border: none;
@@ -143,7 +159,7 @@ const enter = () => {
 }
 
 .success-msg {
-  color: rgb(72, 191, 85); /* 초록색 성공 메시지 */
+  color: rgb(72, 191, 85);
   font-size: 1.4rem;
   font-weight: bold;
   animation: fadeIn 0.3s ease-out;
@@ -153,19 +169,19 @@ const enter = () => {
   margin-top: 5rem;
   font-size: 1.8rem;
   color: #444;
-  text-decoration: none; /* 기본 텍스트 밑줄 제거 */
+  text-decoration: none;
   cursor: pointer;
   font-weight: bold;
   transition: all 0.3s ease;
 }
 
 .enter-btn:hover {
-  text-decoration: underline; /* Hover 상태에서 밑줄 추가 */
-  color: #0056b3; /* Hover 시 글자 색깔 변경 */
+  text-decoration: underline;
+  color: #0056b3;
 }
 
 .enter-btn:active {
-  color: #003f8a; /* 클릭 시 글자 색깔 더 어두워짐 */
+  color: #003f8a;
 }
 
 @keyframes fadeIn {
