@@ -14,6 +14,13 @@ export interface SignUpResponse {
   data: string;
 }
 
+// 로그인 API 응답 타입 (data는 로그인 성공 여부)
+export interface SignInResponse {
+  code: number;
+  message: string;
+  data: string;
+}
+
 export async function useNicknameCheck(
   nickname: string
 ): Promise<NicknameCheckResponse> {
@@ -21,15 +28,11 @@ export async function useNicknameCheck(
     throw new Error("닉네임을 입력해주세요.");
   }
 
-  // 한글 입력값을 NFC 형식으로 정규화
-  const normalizedNickname = nickname.normalize("NFC");
-  console.error(normalizedNickname);
-
   const data = await $fetch<NicknameCheckResponse>(
     "https://3.36.169.63:443/signUp/check",
     {
       method: "GET",
-      params: { nickname: normalizedNickname },
+      params: { nickname },
       headers: {
         "Content-Type": "application/json; charset=UTF-8",
       },
@@ -44,12 +47,25 @@ export async function useSignUp(nickname: string): Promise<SignUpResponse> {
     throw new Error("닉네임을 입력해주세요.");
   }
 
-  // 한글 입력값을 NFC 형식으로 정규화
-  const normalizedNickname = nickname.normalize("NFC");
-
   const data = await $fetch<SignUpResponse>("https://3.36.169.63:443/signUp", {
     method: "POST",
-    params: { nickname: normalizedNickname },
+    params: { nickname },
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+  });
+
+  return data;
+}
+
+export async function useSignIn(nickname: string): Promise<SignInResponse> {
+  if (!nickname) {
+    throw new Error("닉네임을 입력해주세요.");
+  }
+
+  const data = await $fetch<SignInResponse>("https://3.36.169.63:443/login", {
+    method: "POST",
+    params: { nickname },
     headers: {
       "Content-Type": "application/json; charset=UTF-8",
     },

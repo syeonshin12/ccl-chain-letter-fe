@@ -2,11 +2,13 @@
   <div class="nickname-wrapper">
     <div class="instruction">사용할 닉네임을 입력해주세요.</div>
     <div class="input-wrapper">
+      <!-- maxlength 속성을 추가하여 입력을 30자로 제한 -->
       <input
         class="input"
         type="text"
         v-model="nickname"
-        @input="clearError"
+        maxlength="30"
+        @input="onInput"
         placeholder="닉네임을 입력하세요"
       />
       <button @click="checkNickname" class="check-btn">중복 확인</button>
@@ -35,10 +37,43 @@ const nickname = ref("");
 const errorMessage = ref("");
 const successMessage = ref("");
 
+// 실시간으로 입력값의 공백, 글자수 등 에러를 체크하는 함수
+const onInput = () => {
+  // 먼저 에러 메시지 초기화
+  errorMessage.value = "";
+  successMessage.value = "";
+
+  // 글자수 30자 초과 체크 (input의 maxlength 속성으로 이미 제한됨)
+  if (nickname.value.length == 30) {
+    errorMessage.value = "닉네임은 30자 이내로 입력해주세요.";
+  }
+};
+
 const checkNickname = async () => {
   // 입력값 체크
   if (!nickname.value) {
     errorMessage.value = "닉네임을 입력해주세요!";
+    successMessage.value = "";
+    return;
+  }
+
+  // 추가 유효성 검사: 공백 포함 여부 확인
+  if (/\s/.test(nickname.value)) {
+    errorMessage.value = "닉네임에 공백은 허용되지 않습니다.";
+    successMessage.value = "";
+    return;
+  }
+
+  // 추가 유효성 검사: 한글(완성형, 자음, 모음), 영어, 숫자 이외의 문자가 입력된 경우
+  if (!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/.test(nickname.value)) {
+    errorMessage.value = "닉네임은 한글, 영어, 숫자만 입력 가능합니다.";
+    successMessage.value = "";
+    return;
+  }
+
+  // 글자수가 30자 초과인 경우 (input maxlength 속성으로 제한되지만 추가 검증)
+  if (nickname.value.length > 30) {
+    errorMessage.value = "닉네임은 30자 이내로 입력해주세요.";
     successMessage.value = "";
     return;
   }
@@ -68,20 +103,10 @@ const checkNickname = async () => {
   }
 };
 
-const clearError = () => {
-  errorMessage.value = "";
-  successMessage.value = "";
-};
-
-/**
- * enter 함수에서 회원가입 API(useSignUp)를 호출하고,
- * 응답받은 닉네임을 로컬 스토리지에 저장한 후 메인 페이지로 이동합니다.
- */
 const enter = async () => {
   try {
     const signUpResult = await useSignUp(nickname.value);
     if (signUpResult && signUpResult.code === 0) {
-      // 응답받은 닉네임(signUpResult.data)을 로컬 스토리지에 저장합니다.
       localStorage.setItem("nickname", signUpResult.data);
       router.push("/main");
     } else {

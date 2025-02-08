@@ -18,7 +18,6 @@
         {{ errorMessage || successMessage }}
       </div>
     </div>
-    <!-- '입장하기' 버튼 항상 노출 -->
     <div>
       <button class="enter-btn" @click="enter">입장하기</button>
     </div>
@@ -28,36 +27,60 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+
 const router = useRouter();
 
 const nickname = ref("");
 const errorMessage = ref("");
 const successMessage = ref("");
 
-const existingNicknames = ["user1", "user2", "admin"];
-
 const clearError = () => {
   errorMessage.value = "";
   successMessage.value = "";
 };
 
-const enter = () => {
+const enter = async () => {
   if (!nickname.value) {
     errorMessage.value = "닉네임을 입력해주세요!";
     successMessage.value = "";
     return;
   }
 
-  const exists = existingNicknames.includes(nickname.value);
+  // 공백 포함 여부 체크
+  if (/\s/.test(nickname.value)) {
+    errorMessage.value = "닉네임에 공백은 허용되지 않습니다.";
+    successMessage.value = "";
+    return;
+  }
 
-  if (!exists) {
+  // 허용 문자 검사: 한글(가-힣), 자모(ㄱ-ㅎ, ㅏ-ㅣ), 영어(a-z, A-Z), 숫자(0-9)만 허용
+
+  if (!/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]+$/.test(nickname.value)) {
+    errorMessage.value = "닉네임은 한글, 영어, 숫자만 입력 가능합니다.";
+    successMessage.value = "";
+    return;
+  }
+
+  try {
+    const result = await useSignIn(nickname.value);
+    console.error(result, "로그인 결과");
+
+    if (
+      result &&
+      result.code === 0 &&
+      typeof result.data === "string" &&
+      result.data.trim().length > 0
+    ) {
+      errorMessage.value = "";
+      successMessage.value = "환영합니다!";
+      // 로그인 성공 시 localStorage에 닉네임 저장
+      localStorage.setItem("nickname", result.data);
+      // 로그인 성공 후 1초 후에 메인 페이지로 이동
+      setTimeout(() => router.push("/main"), 1000);
+    }
+  } catch (err: any) {
     errorMessage.value = "존재하지 않는 닉네임입니다.";
     successMessage.value = "";
-  } else {
-    errorMessage.value = "";
-    successMessage.value = "환영합니다!";
-    // 닉네임이 존재할 때 /main으로 이동
-    setTimeout(() => router.push("/main"), 1000);
   }
 };
 </script>
