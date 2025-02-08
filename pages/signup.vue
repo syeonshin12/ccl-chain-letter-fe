@@ -46,8 +46,8 @@ const checkNickname = async () => {
   try {
     // useNicknameCheck를 통해 API 호출
     const result = await useNicknameCheck(nickname.value);
+    console.error(result, "중복 체크 결과");
 
-    console.error(result, "결과여 중복 결과");
     // 정상 응답(code가 0)인 경우
     if (result && result.code === 0) {
       // result.data가 true이면 이미 사용 중, false이면 사용 가능
@@ -73,9 +73,23 @@ const clearError = () => {
   successMessage.value = "";
 };
 
-const enter = () => {
-  // 닉네임 회원가입 및 로그인 로직 후, 메인 페이지로 이동
-  router.push("/main");
+/**
+ * enter 함수에서 회원가입 API(useSignUp)를 호출하고,
+ * 응답받은 닉네임을 로컬 스토리지에 저장한 후 메인 페이지로 이동합니다.
+ */
+const enter = async () => {
+  try {
+    const signUpResult = await useSignUp(nickname.value);
+    if (signUpResult && signUpResult.code === 0) {
+      // 응답받은 닉네임(signUpResult.data)을 로컬 스토리지에 저장합니다.
+      localStorage.setItem("nickname", signUpResult.data);
+      router.push("/main");
+    } else {
+      errorMessage.value = `회원가입에 실패했습니다: ${signUpResult.message}`;
+    }
+  } catch (err: any) {
+    errorMessage.value = err.message || "회원가입 중 오류가 발생했습니다.";
+  }
 };
 </script>
 
