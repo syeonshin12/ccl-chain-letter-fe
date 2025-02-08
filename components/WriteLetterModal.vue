@@ -2,6 +2,8 @@
   <div class="modal-overlay">
     <div class="letter-wrapper">
       <button class="close-btn" @click="handleCloseModal">X</button>
+
+      <!-- 이미지 업로드 영역 -->
       <div class="file-upload-wrapper" v-if="!previewUrl">
         <label for="file-upload" class="custom-file-upload">
           사진 업로드
@@ -18,51 +20,135 @@
         <button class="remove-btn" @click="handleRemoveImage">X</button>
       </div>
 
+      <!-- 본문 입력 영역 -->
       <textarea
         class="custom_textarea"
+        v-model="content"
         placeholder="내용을 입력해보세요."
         maxlength="100"
       ></textarea>
 
+      <!-- 쪽지 전송 버튼 -->
       <button class="send-button" @click="handleSendLetter">편지 보내기</button>
+
+      <!-- 에러/성공 메시지 (선택적으로 표시) -->
+      <div class="error-wrapper" v-if="errorMessage || successMessage">
+        <div
+          :class="{ 'error-msg': errorMessage, 'success-msg': successMessage }"
+        >
+          {{ errorMessage || successMessage }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-const imageFile = ref();
-const previewUrl = ref();
+import { ref } from "vue";
+
+const imageFile = ref<File | null>(null);
+const previewUrl = ref("");
+const content = ref("");
+const errorMessage = ref("");
+const successMessage = ref("");
 const emit = defineEmits(["close-write-modal"]);
 
+// 이미지 업로드 핸들러
 const handleImageUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement; // 타입 단언으로 HTMLInputElement로 지정
-  const file = target.files?.[0]; // 파일이 있을 경우에만 접근
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
   if (file) {
+    // 파일 크기 제한: 최대 5MB (5 * 1024 * 1024 bytes)
+    if (file.size > 5 * 1024 * 1024) {
+      errorMessage.value = "이미지는 최대 5MB까지 업로드 가능합니다.";
+      return;
+    }
     imageFile.value = file;
     previewUrl.value = URL.createObjectURL(file);
   }
 };
 
+// 이미지 제거 핸들러
+const handleRemoveImage = () => {
+  imageFile.value = null;
+  previewUrl.value = "";
+};
+
+// 모달 닫기 핸들러
 const handleCloseModal = () => {
   emit("close-write-modal");
 };
 
-const handleRemoveImage = () => {
-  imageFile.value = null;
-  previewUrl.value = null;
-};
+// 쪽지 등록 API 호출 핸들러
+const handleSendLetter = async () => {
+  // 본문 내용 유효성 검사
+  if (!content.value.trim()) {
+    errorMessage.value = "본문 내용을 입력해보세요.";
+    successMessage.value = "";
+    return;
+  }
+  if (content.value.length == 100) {
+    errorMessage.value = "본문은 100자 이내로 입력해주세요.";
+    successMessage.value = "";
+    return;
+  }
 
-const handleSendLetter = () => {};
+  // localStorage에 저장된 닉네임 추출 (로그인 시 저장한 값)
+  const storedNickname = localStorage.getItem("nickname");
+  if (!storedNickname) {
+    errorMessage.value = "닉네임 정보가 없습니다. 다시 로그인 해주세요.";
+    successMessage.value = "";
+    return;
+  }
+
+  // FormData 생성 (multipart/form-data 형식)
+  const formData = new FormData();
+  formData.append("content", content.value);
+  formData.append("nickname", storedNickname);
+  if (imageFile.value) {
+    formData.append("image", imageFile.value);
+  }
+
+  try {
+    // useSendMessage 함수 호출: POST /messages API
+    const response = await useSendMessage(
+      content.value,
+      storedNickname,
+      imageFile.value || undefined
+    );
+    console.log(response, "쪽지 등록 결과");
+    if (response.code === 0) {
+      successMessage.value = "쪽지가 전송되었습니다!";
+      errorMessage.value = "";
+
+      // 쪽지 성공시 동작 구현
+      // 전송 성공 시, 입력값 및 이미지 미리보기 초기화
+      content.value = "";
+      imageFile.value = null;
+      previewUrl.value = "";
+      // 1초 후 모달 닫기
+      setTimeout(() => {
+        emit("close-write-modal");
+      }, 1000);
+    } else {
+      errorMessage.value = response.message || "쪽지 전송 실패";
+      successMessage.value = "";
+    }
+  } catch (err: any) {
+    errorMessage.value = err.message || "쪽지 전송 중 오류가 발생했습니다.";
+    successMessage.value = "";
+  }
+};
 </script>
 
 <style scoped lang="scss">
 .modal-overlay {
-  position: fixed; /* 화면 고정 */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   z-index: 20;
@@ -121,8 +207,8 @@ const handleSendLetter = () => {};
   text-align: center;
   margin: 0 auto;
   margin-top: 10vh;
-  border-radius: 10px; /* 부드러운 모서리 */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 약간의 그림자 */
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .img-wrapper {
@@ -139,7 +225,7 @@ const handleSendLetter = () => {};
 }
 
 .remove-btn {
-  position: absolute; /* 이미지 위에 위치 */
+  position: absolute;
   top: 0px;
   right: 0px;
   background-color: rgba(0, 0, 0, 0.5);
@@ -164,11 +250,6 @@ const handleSendLetter = () => {};
   outline: none;
 }
 
-.letter-sender {
-  margin-top: 2vh;
-  font-size: clamp(1rem, 1.5vw, 1.5rem);
-}
-
 .send-button {
   margin-top: 2vh;
   width: 90%;
@@ -176,5 +257,23 @@ const handleSendLetter = () => {};
   font-size: 20px;
   border-radius: 10px;
   background: lightblue;
+}
+
+.error-wrapper {
+  margin-top: 1vh;
+  width: 90%;
+  text-align: center;
+}
+
+.error-msg {
+  color: red;
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.success-msg {
+  color: green;
+  font-size: 1.4rem;
+  font-weight: bold;
 }
 </style>

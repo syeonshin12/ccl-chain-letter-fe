@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { Sky } from "three/examples/jsm/objects/Sky";
+
 import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
@@ -404,7 +404,7 @@ function setupKeyControls() {
 }
 
 // 보트 이동 관련 변수
-let boatSpeed = 7; // 가속도
+let boatSpeed = 8.5; // 가속도
 let boatRotationSpeed = Math.PI / 3; // 초당 회전 각도
 let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05; // 감쇠 계수

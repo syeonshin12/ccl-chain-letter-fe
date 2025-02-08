@@ -98,3 +98,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("click", onClick);
 });
 </script>
+
+<template>
+  <div></div>
+</template>
