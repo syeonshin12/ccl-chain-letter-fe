@@ -12,10 +12,6 @@ export interface GetMessagesResponse {
   data: Message[];
 }
 
-/**
- * 전체 쪽지 조회 API 호출 함수
- * @returns {Promise<GetMessagesResponse>} API 응답 데이터
- */
 export async function useFetchMessageList(): Promise<GetMessagesResponse> {
   const response = await $fetch<GetMessagesResponse>(
     "https://3.36.169.63:443/messages",

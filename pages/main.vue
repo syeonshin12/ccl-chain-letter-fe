@@ -10,13 +10,16 @@
       v-if="showWriteLetterModal"
       @close-write-modal="showWriteLetterModal = false"
     />
+
     <letter-modal
       v-if="showLetterModal"
+      :selectedMessageId="selectedMessageId"
       @close-letter-modal="showLetterModal = false"
     />
 
+    <!-- 병(bottle) 컴포넌트: 각 병 클릭 시, 해당 병의 messageId를 openLetterModal로 전달 -->
     <bottle
-      :onClick="openLetterModal"
+      :onClick="() => openLetterModal(bottle.messageId)"
       v-for="(bottle, index) in bottles"
       :key="index"
       :position="bottle.position"
@@ -29,16 +32,71 @@
 <script setup lang="ts">
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
 import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
+import { ref, onMounted, onBeforeUnmount } from "vue";
+
+// 쪽지 데이터 타입 (composables/useFetchMessageList.ts 에서 정의한 Message 타입과 동일)
+interface Message {
+  id: number;
+  content: string;
+  imageUrl: string | null;
+}
+
+// 병(bottle) 객체 타입: 각 병은 position과 선택적으로 messageId를 가짐
+const bottles = ref<
+  { position: { x: number; y: number; z: number }; messageId?: number }[]
+>([]);
+
+// 전체 쪽지 데이터를 저장할 배열
+const messages = ref<Message[]>([]);
+
+const container = ref<HTMLElement | null>(null);
+let sun: THREE.Vector3;
+let water: Water;
+let scene: THREE.Scene;
+let camera: THREE.PerspectiveCamera;
+let renderer: THREE.WebGLRenderer;
+let controls: OrbitControls;
+let boat: THREE.Group | null = null;
+let clock: THREE.Clock;
+let avatar: THREE.Group | null = null;
+let avatarMixer: THREE.AnimationMixer | null = null;
+let islandMixer: THREE.AnimationMixer | null = null;
+let islandMixer2: THREE.AnimationMixer | null = null;
+
+let boatGroup = new THREE.Group();
+
+type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+const keys: Record<ArrowKey, boolean> = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+};
+
+let isUserInteracting = false;
+
+const showLetterModal = ref(false);
+const showWriteLetterModal = ref(false);
+const selectedMessageId = ref<number | null>(null);
+
+const openWriteLetterModal = () => {
+  showWriteLetterModal.value = true;
+};
+
+// 수정된 openLetterModal: messageId를 인자로 받아 selectedMessageId에 저장한 후 모달 오픈
+const openLetterModal = (messageId: number | undefined) => {
+  if (messageId === undefined) return;
+  selectedMessageId.value = messageId;
+  showLetterModal.value = true;
+};
 
 // ─────────────────────────────────────────────
-// Skybox 초기화 함수 (제공해주신 코드)
+// Skybox 초기화 함수
 // ─────────────────────────────────────────────
 function initSkybox() {
-  // public 폴더 내의 파일 경로에 맞게 수정 (예: /sky_pos_x.png 등)
   const urls = [
     "/sky_pos_x.png",
     "/sky_neg_x.png",
@@ -48,8 +106,7 @@ function initSkybox() {
     "/sky_pos_z.png",
   ];
   const reflectionCube = new THREE.CubeTextureLoader().load(urls);
-  // reflectionCube.encoding = THREE.sRGBEncoding; // sRGB 인코딩 설정
-  reflectionCube.format = THREE.RGBAFormat; // RGBA 포맷 사용
+  reflectionCube.format = THREE.RGBAFormat;
   const shader = THREE.ShaderLib["cube"];
   shader.uniforms["tCube"].value = reflectionCube;
   const material = new THREE.ShaderMaterial({
@@ -64,84 +121,44 @@ function initSkybox() {
     material
   );
   skyBox.position.set(0, 0, 0);
-
   scene.add(skyBox);
 }
 
 // ─────────────────────────────────────────────
-// 기존 main 페이지 코드
+// 병 생성 함수: 메시지 데이터가 있으면 각 메시지의 id를 병 객체에 저장
 // ─────────────────────────────────────────────
-let avatar: THREE.Group | null = null;
-let avatarMixer: THREE.AnimationMixer | null = null;
-
-const bottles = ref<{ position: { x: number; y: number; z: number } }[]>([]);
-
-const container = ref<HTMLElement | null>(null);
-let sun: THREE.Vector3;
-let water: Water;
-let scene: THREE.Scene;
-let camera: THREE.PerspectiveCamera;
-let renderer: THREE.WebGLRenderer;
-let controls: OrbitControls;
-let boat: THREE.Group | null = null;
-let clock: THREE.Clock;
-
-// 보트와 아바타를 함께 담는 그룹
-let boatGroup = new THREE.Group();
-
-type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
-const keys: Record<ArrowKey, boolean> = {
-  ArrowUp: false,
-  ArrowDown: false,
-  ArrowLeft: false,
-  ArrowRight: false,
-};
-
-let isUserInteracting = false; // 사용자가 OrbitControls로 카메라를 조작 중인지 여부
-
-let islandMixer: THREE.AnimationMixer | null = null; // 전역 변수 선언
-let islandMixer2: THREE.AnimationMixer | null = null;
-
-onMounted(() => {
-  init();
-  animate();
-  setupKeyControls();
-});
-
-onBeforeUnmount(() => {
-  if (renderer) {
-    renderer.dispose();
+function createBottles() {
+  if (!boat) return;
+  const minDistanceFromBoat = 80;
+  const minDistanceBetweenBottles = 25;
+  bottles.value = [];
+  if (messages.value.length > 0) {
+    messages.value.forEach((msg) => {
+      const pos = getRandomPosition(
+        minDistanceFromBoat,
+        minDistanceBetweenBottles
+      );
+      bottles.value.push({ position: pos, messageId: msg.id });
+    });
   }
-});
-
-function updateAvatarPosition() {
-  if (!boat || !avatar) return;
-  const box = new THREE.Box3().setFromObject(boat);
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
 }
 
 function getRandomPosition(
   minDistanceFromBoat: number,
   minDistanceBetweenBottles: number
 ) {
-  let position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+  let position = { x: 0, y: 0, z: 0 };
   let distanceFromBoat = 0;
   let distanceBetweenBottles = Infinity;
   let attempts = 0;
   const maxAttempts = 100;
-
   do {
     if (!boat) return position;
-    // x, z 범위를 -3000 ~ 3000으로 변경하여 바다 안쪽에 배치
     position = {
-      x: Math.random() * 6000 - 3000, // 6000 = 3000 - (-3000)
-      y: Math.random() * 5 + 2, // y 좌표는 그대로 2~7 사이
+      x: Math.random() * 6000 - 3000,
+      y: Math.random() * 5 + 2,
       z: Math.random() * 6000 - 3000,
     };
-
-    // 보트와의 최소 거리 체크
     distanceFromBoat = Math.sqrt(
       (position.x - boat.position.x) ** 2 +
         (position.y - boat.position.y) ** 2 +
@@ -169,17 +186,42 @@ function getRandomPosition(
   return position;
 }
 
-function createBottles() {
-  if (!boat) return;
-  const minDistanceFromBoat = 80;
-  const minDistanceBetweenBottles = 25;
-  for (let i = 0; i < 15; i++) {
-    const position = getRandomPosition(
-      minDistanceFromBoat,
-      minDistanceBetweenBottles
-    );
-    bottles.value.push({ position });
+// ─────────────────────────────────────────────
+// onMounted: 초기화 및 쪽지 조회 후 병 생성
+// ─────────────────────────────────────────────
+onMounted(async () => {
+  init();
+  animate();
+  setupKeyControls();
+
+  // 쪽지 조회 API 호출 (useFetchMessageList는 Nuxt3 자동 임포트)
+  try {
+    const res = await useFetchMessageList();
+    if (res && res.code === 0) {
+      messages.value = res.data;
+    }
+  } catch (error) {
+    console.error("쪽지 조회 API 호출 중 오류 발생:", error);
   }
+
+  createBottles();
+});
+
+onBeforeUnmount(() => {
+  if (renderer) {
+    renderer.dispose();
+  }
+});
+
+// ─────────────────────────────────────────────
+// 기존 main 페이지 초기화 및 애니메이션 함수
+// ─────────────────────────────────────────────
+function updateAvatarPosition() {
+  if (!boat || !avatar) return;
+  const box = new THREE.Box3().setFromObject(boat);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  avatar.position.copy(center).add(new THREE.Vector3(0, -5, 0));
 }
 
 function init() {
@@ -191,7 +233,7 @@ function init() {
   container.value.appendChild(renderer.domElement);
 
   scene = new THREE.Scene();
-  scene.add(boatGroup); // 보트 그룹을 씬에 추가
+  scene.add(boatGroup);
 
   camera = new THREE.PerspectiveCamera(
     65,
@@ -208,12 +250,9 @@ function init() {
       avatar = fbx;
       avatar.scale.set(0.4, 0.4, 0.4);
       avatar.position.set(0, 10, 0);
-
-      avatar.rotation.y = THREE.MathUtils.degToRad(50); // Y축을 10도 회전
-      avatar.rotation.x = THREE.MathUtils.degToRad(-5); // X축을 -5도 기울임 (선택 사항)
-
+      avatar.rotation.y = THREE.MathUtils.degToRad(50);
+      avatar.rotation.x = THREE.MathUtils.degToRad(-5);
       boatGroup.add(avatar);
-      // 아바타 로드 완료 후 보트 중심 기반 위치 업데이트
       updateAvatarPosition();
       if (fbx.animations.length > 0) {
         avatarMixer = new THREE.AnimationMixer(avatar);
@@ -236,7 +275,6 @@ function init() {
 
   sun = new THREE.Vector3();
 
-  // 바다 설정 (크기 8000x8000)
   const waterGeometry = new THREE.PlaneGeometry(6000, 6000);
   water = new Water(waterGeometry, {
     textureWidth: 512,
@@ -257,7 +295,6 @@ function init() {
   water.material.uniforms["alpha"].value = 1;
   scene.add(water);
 
-  // 보트 로드 (GLTFLoader)
   const loader = new GLTFLoader();
   loader.load(
     "/boat.glb",
@@ -279,39 +316,32 @@ function init() {
     (error) => console.error("Boat load failed:", error)
   );
 
-  // Lighthouse 모델 로드 (여기에 추가)
   const lighthouseLoader = new GLTFLoader();
   lighthouseLoader.load(
     "/light_house.glb",
     (gltf) => {
       const lighthouse = gltf.scene;
       lighthouse.scale.set(15, 15, 15);
-      lighthouse.position.set(-20, -10, 700); // 원하는 위치로 조정
-
+      lighthouse.position.set(-20, -10, 700);
       lighthouse.rotation.y = Math.PI;
-
       scene.add(lighthouse);
     },
     undefined,
     (error) => console.error("Lighthouse load failed:", error)
   );
 
-  // 산호초
-  // Lighthouse 모델 로드 (여기에 추가)
   const reef1Loader = new GLTFLoader();
   reef1Loader.load(
     "/reef_1.glb",
     (gltf) => {
       const reef1 = gltf.scene;
       reef1.scale.set(0.15, 0.15, 0.15);
-      reef1.position.set(-700, -10, 400); // 원하는 위치로 조정
-
+      reef1.position.set(-700, -10, 400);
       reef1.rotation.y = Math.PI;
-
       scene.add(reef1);
     },
     undefined,
-    (error) => console.error("Lighthouse load failed:", error)
+    (error) => console.error("Reef load failed:", error)
   );
 
   const islandLoader = new GLTFLoader();
@@ -319,15 +349,12 @@ function init() {
     "/island_coconut.glb",
     (gltf) => {
       const islandCoconut = gltf.scene;
-      // 스케일과 위치는 필요에 따라 조절 (예: 바다 위에 떠 있는 듯한 위치)
-      islandCoconut.scale.set(8, 8, 8); // 모델에 따라 조정
-      islandCoconut.position.set(500, 17, 500); // 예시 위치: x=1000, y=0 (해수면 기준), z=500
+      islandCoconut.scale.set(8, 8, 8);
+      islandCoconut.position.set(500, 17, 500);
       scene.add(islandCoconut);
-
       if (gltf.animations && gltf.animations.length > 0) {
         islandMixer = new THREE.AnimationMixer(islandCoconut);
         const action = islandMixer.clipAction(gltf.animations[0]);
-
         action.play();
       }
     },
@@ -341,19 +368,12 @@ function init() {
     (gltf) => {
       const islandCoconut2 = gltf.scene;
       islandCoconut2.scale.set(8, 8, 8);
-      // 예시 위치: x = -1200, y = 17, z = -800
       islandCoconut2.position.set(-1200, 17, -800);
       scene.add(islandCoconut2);
-
       if (gltf.animations && gltf.animations.length > 0) {
-        // 별도의 애니메이션 믹서를 생성하거나, 여러 믹서를 배열에 담아 animate()에서 업데이트할 수 있음
         const mixer2 = new THREE.AnimationMixer(islandCoconut2);
         const action2 = mixer2.clipAction(gltf.animations[0]);
         action2.play();
-
-        // 예시: animate() 함수에서 mixer2.update(delta)를 호출하는 코드를 추가해야 함.
-        // 또는 전역 변수나 배열에 저장해서 매 프레임 업데이트하도록 처리합니다.
-        // 여기서는 간단히 전역 변수 islandMixer2에 할당하는 예시:
         islandMixer2 = mixer2;
       }
     },
@@ -361,7 +381,6 @@ function init() {
     (error) => console.error("Island coconut 2 model load failed:", error)
   );
 
-  // 기존 Sky 관련 코드를 제거하고, initSkybox() 호출하여 하늘박스를 적용
   initSkybox();
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -403,13 +422,11 @@ function setupKeyControls() {
   });
 }
 
-// 보트 이동 관련 변수
-let boatSpeed = 8.5; // 가속도
-let boatRotationSpeed = Math.PI / 3; // 초당 회전 각도
+let boatSpeed = 8.5;
+let boatRotationSpeed = Math.PI / 3;
 let boatVelocity = new THREE.Vector3();
-let dampingFactor = 0.05; // 감쇠 계수
+let dampingFactor = 0.05;
 
-// 보트 이동 업데이트
 function updateBoatMovement(delta: number) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
     boatGroup.quaternion
@@ -442,9 +459,7 @@ function animate() {
 
   updateBoatMovement(delta);
 
-  // 사용자가 직접 조작 중이 아니라면 자동 follow 업데이트:
   if (!isUserInteracting) {
-    // 보트 뒤쪽에 카메라가 위치하도록 오프셋 계산 (보트 회전에 맞춰 적용)
     const camOffset = new THREE.Vector3(0, 50, -250);
     camOffset.applyQuaternion(boatGroup.quaternion);
     const desiredCamPos = boatGroup.position.clone().add(camOffset);
@@ -460,11 +475,9 @@ function animate() {
   if (avatarMixer) {
     avatarMixer.update(delta);
   }
-
   if (islandMixer) {
     islandMixer.update(delta);
   }
-
   if (islandMixer2) {
     islandMixer2?.update(delta);
   }
@@ -472,17 +485,6 @@ function animate() {
   water.material.uniforms["time"].value += delta;
   renderer.render(scene, camera);
 }
-
-const showLetterModal = ref(false);
-const showWriteLetterModal = ref(false);
-
-const openWriteLetterModal = () => {
-  showWriteLetterModal.value = true;
-};
-
-const openLetterModal = () => {
-  showLetterModal.value = true;
-};
 </script>
 
 <style scoped>
@@ -505,13 +507,9 @@ const openLetterModal = () => {
 }
 
 .write {
-  background: linear-gradient(
-    45deg,
-    #00d2ff,
-    #3a7bd5
-  ); /* 하늘색 계열 그라데이션 */
+  background: linear-gradient(45deg, #00d2ff, #3a7bd5);
   border: none;
-  border-radius: 25px; /* 둥근 모서리 */
+  border-radius: 25px;
   padding: 12px 30px;
   font-size: 23px;
   font-weight: bold;
@@ -519,16 +517,16 @@ const openLetterModal = () => {
   cursor: pointer;
   transition:
     transform 0.2s,
-    box-shadow 0.2s; /* 부드러운 애니메이션 효과 */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 버튼 그림자 */
+    box-shadow 0.2s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .write:hover {
-  transform: scale(1.05); /* 마우스 오버 시 살짝 커짐 */
+  transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .write:active {
-  transform: scale(0.98); /* 클릭 시 약간 줄어드는 효과 */
+  transform: scale(0.98);
 }
 </style>
