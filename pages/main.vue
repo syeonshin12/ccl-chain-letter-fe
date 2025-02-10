@@ -422,7 +422,7 @@ function setupKeyControls() {
   });
 }
 
-let boatSpeed = 8.5;
+let boatSpeed = 10;
 let boatRotationSpeed = Math.PI / 3;
 let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05;
