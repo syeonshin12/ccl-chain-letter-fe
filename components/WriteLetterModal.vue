@@ -20,18 +20,20 @@
         <button class="remove-btn" @click="handleRemoveImage">X</button>
       </div>
 
-      <!-- 본문 입력 영역 -->
+      <!-- 본문 입력 영역 (maxlength 100 적용) -->
+      <!-- @input 이벤트 추가: 입력 시작 시 에러 메시지 초기화 -->
       <textarea
         class="custom_textarea"
         v-model="content"
         placeholder="내용을 입력해보세요."
         maxlength="100"
+        @input="clearError"
       ></textarea>
 
       <!-- 쪽지 전송 버튼 -->
       <button class="send-button" @click="handleSendLetter">편지 보내기</button>
 
-      <!-- 에러/성공 메시지 (선택적으로 표시) -->
+      <!-- 에러/성공 메시지 -->
       <div class="error-wrapper" v-if="errorMessage || successMessage">
         <div
           :class="{ 'error-msg': errorMessage, 'success-msg': successMessage }"
@@ -44,23 +46,34 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 
 const imageFile = ref<File | null>(null);
 const previewUrl = ref("");
 const content = ref("");
 const errorMessage = ref("");
 const successMessage = ref("");
+
 const emit = defineEmits(["close-write-modal"]);
 
-// 이미지 업로드 핸들러
+// 모달이 열리면 localStorage에서 닉네임을 바로 확인
+onMounted(() => {
+  const storedNickname = localStorage.getItem("nickname");
+  if (!storedNickname) {
+    errorMessage.value = "닉네임 정보가 없습니다. 로그인 후 이용해주세요.";
+  }
+});
+
+// 이미지 업로드 핸들러: 파일 크기가 5MB 이상이면 에러 처리 후 1초 후 에러 메시지 자동 제거
 const handleImageUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (file) {
-    // 파일 크기 제한: 최대 5MB (5 * 1024 * 1024 bytes)
-    if (file.size > 5 * 1024 * 1024) {
-      errorMessage.value = "이미지는 최대 5MB까지 업로드 가능합니다.";
+    if (file.size >= 5 * 1024 * 1024) {
+      errorMessage.value = "이미지는 5MB 미만으로 업로드 가능합니다.";
+      setTimeout(() => {
+        errorMessage.value = "";
+      }, 1000);
       return;
     }
     imageFile.value = file;
@@ -79,17 +92,15 @@ const handleCloseModal = () => {
   emit("close-write-modal");
 };
 
-// 쪽지 등록 API 호출 핸들러
+// 쪽지 전송 API 호출 핸들러
 const handleSendLetter = async () => {
   // 본문 내용 유효성 검사
   if (!content.value.trim()) {
     errorMessage.value = "본문 내용을 입력해보세요.";
-    successMessage.value = "";
     return;
   }
-  if (content.value.length == 100) {
+  if (content.value.length > 100) {
     errorMessage.value = "본문은 100자 이내로 입력해주세요.";
-    successMessage.value = "";
     return;
   }
 
@@ -97,11 +108,10 @@ const handleSendLetter = async () => {
   const storedNickname = localStorage.getItem("nickname");
   if (!storedNickname) {
     errorMessage.value = "닉네임 정보가 없습니다. 다시 로그인 해주세요.";
-    successMessage.value = "";
     return;
   }
 
-  // FormData 생성 (multipart/form-data 형식)
+  // FormData 생성 (multipart/form-data)
   const formData = new FormData();
   formData.append("content", content.value);
   formData.append("nickname", storedNickname);
@@ -110,23 +120,18 @@ const handleSendLetter = async () => {
   }
 
   try {
-    // useSendMessage 함수 호출: POST /messages API
     const response = await useSendMessage(
       content.value,
       storedNickname,
       imageFile.value || undefined
     );
-    console.log(response, "쪽지 등록 결과");
+
     if (response.code === 0) {
       successMessage.value = "쪽지가 전송되었습니다!";
       errorMessage.value = "";
-
-      // 쪽지 성공시 동작 구현
-      // 전송 성공 시, 입력값 및 이미지 미리보기 초기화
       content.value = "";
       imageFile.value = null;
       previewUrl.value = "";
-      // 1초 후 모달 닫기
       setTimeout(() => {
         emit("close-write-modal");
       }, 1000);
@@ -138,6 +143,12 @@ const handleSendLetter = async () => {
     errorMessage.value = err.message || "쪽지 전송 중 오류가 발생했습니다.";
     successMessage.value = "";
   }
+};
+
+// clearError: 입력 이벤트가 발생하면 에러와 성공 메시지 초기화
+const clearError = () => {
+  errorMessage.value = "";
+  successMessage.value = "";
 };
 </script>
 
@@ -257,6 +268,12 @@ const handleSendLetter = async () => {
   font-size: 20px;
   border-radius: 10px;
   background: lightblue;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.send-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .error-wrapper {

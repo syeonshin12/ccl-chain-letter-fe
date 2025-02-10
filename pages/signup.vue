@@ -81,7 +81,6 @@ const checkNickname = async () => {
   try {
     // useNicknameCheck를 통해 API 호출
     const result = await useNicknameCheck(nickname.value);
-    console.error(result, "중복 체크 결과");
 
     // 정상 응답(code가 0)인 경우
     if (result && result.code === 0) {
@@ -205,7 +204,7 @@ const enter = async () => {
 }
 
 .enter-btn {
-  margin-top: 5rem;
+  margin-top: 4rem;
   font-size: 1.8rem;
   color: #444;
   text-decoration: none;

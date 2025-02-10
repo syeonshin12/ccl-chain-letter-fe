@@ -16,7 +16,8 @@
           <div class="content">
             {{ messageDetail?.content }}
           </div>
-          <div class="letter-sender">From. 싱싱여니</div>
+
+          <div class="letter-sender">From. {{ messageDetail?.nickname }}</div>
         </div>
       </div>
     </div>
@@ -26,7 +27,6 @@
 <script lang="ts" setup>
 import { ref, watch, computed } from "vue";
 
-// props: 부모(Main)에서 전달받은 selectedMessageId
 const props = defineProps<{ selectedMessageId: number | null }>();
 const emit = defineEmits(["close-letter-modal"]);
 
@@ -34,6 +34,7 @@ const messageDetail = ref<MessageDetail | null>(null);
 const loading = ref(false);
 const error = ref("");
 
+// selectedMessageId가 변경되면 쪽지 상세 정보를 조회
 watch(
   () => props.selectedMessageId,
   async (newId) => {
@@ -58,15 +59,12 @@ watch(
   { immediate: true }
 );
 
-// fullImageUrl: API에서 받은 imageUrl을 완전한 URL로 변환 (이미지가 없으면 기본 이미지 사용)
+// fullImageUrl: imageUrl이 존재하면 "https://ssgg.store:443/{이미지파일명}" 형태로 반환, 없으면 기본 이미지
 const fullImageUrl = computed(() => {
-  console.error(messageDetail.value);
   if (messageDetail.value?.imageUrl) {
-    const re = `https://ssgg.store:443/${messageDetail.value.imageUrl.replace(/^\/+/, "")}`;
-    console.error("adsfdfa", re);
-    return re;
+    return `https://ssgg.store:443/${messageDetail.value.imageUrl.replace(/^\/+/, "")}`;
   }
-  return "/test_img.jpeg"; // 기본 이미지 경로
+  return "/test_img.jpeg";
 });
 
 const handleCloseModal = () => {
@@ -84,6 +82,7 @@ const handleCloseModal = () => {
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
+  align-items: center;
   z-index: 20;
 }
 
@@ -94,7 +93,7 @@ const handleCloseModal = () => {
   font-size: 25px;
   font-weight: bold;
   margin-bottom: 8px;
-  :hover {
+  &:hover {
     cursor: pointer;
   }
 }
@@ -111,14 +110,13 @@ const handleCloseModal = () => {
   height: 80vh;
   text-align: center;
   margin: 0 auto;
-  margin-top: 10vh;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .letter-img {
   width: 90%;
-  height: 50%;
+  height: 45%;
   border-radius: 10px;
   object-fit: contain;
   background-color: lightgray;
@@ -127,7 +125,7 @@ const handleCloseModal = () => {
 .content-wrapper {
   margin-top: 50px;
   width: 90%;
-  height: 50%;
+  /* height: 50%; */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -145,6 +143,7 @@ const handleCloseModal = () => {
 
 .modal-body {
   width: 90%;
+  height: 100%;
   margin-top: 15px;
   display: flex;
   flex-direction: column;

@@ -63,7 +63,6 @@ const enter = async () => {
 
   try {
     const result = await useSignIn(nickname.value);
-    console.error(result, "로그인 결과");
 
     if (
       result &&

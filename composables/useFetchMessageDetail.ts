@@ -3,6 +3,7 @@ export interface MessageDetail {
   id: number;
   content: string;
   imageUrl: string | null;
+  nickname: string;
 }
 
 // 전체 응답 타입
