@@ -428,6 +428,8 @@ let boatVelocity = new THREE.Vector3();
 let dampingFactor = 0.05;
 
 function updateBoatMovement(delta: number) {
+  // write letter modal이 열려있으면 배 이동을 멈춥니다.
+  if (showWriteLetterModal.value || showLetterModal.value) return;
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
     boatGroup.quaternion
   );
