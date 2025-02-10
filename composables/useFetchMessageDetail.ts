@@ -20,7 +20,7 @@ export async function useFetchMessageDetail(
   }
 
   const response = await $fetch<GetMessageDetailResponse>(
-    `https://3.36.169.63:443/messages/${id}`,
+    `https://ssgg.store:443/messages/${id}`,
     {
       method: "GET",
       headers: {

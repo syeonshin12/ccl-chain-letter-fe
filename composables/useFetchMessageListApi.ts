@@ -14,7 +14,7 @@ export interface GetMessagesResponse {
 
 export async function useFetchMessageList(): Promise<GetMessagesResponse> {
   const response = await $fetch<GetMessagesResponse>(
-    "https://3.36.169.63:443/messages",
+    "https://ssgg.store:443/messages",
     {
       method: "GET",
       headers: {

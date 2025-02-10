@@ -62,7 +62,7 @@ watch(
 const fullImageUrl = computed(() => {
   console.error(messageDetail.value);
   if (messageDetail.value?.imageUrl) {
-    const re = `https://3.36.169.63:443/${messageDetail.value.imageUrl.replace(/^\/+/, "")}`;
+    const re = `https://ssgg.store:443/${messageDetail.value.imageUrl.replace(/^\/+/, "")}`;
     console.error("adsfdfa", re);
     return re;
   }

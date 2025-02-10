@@ -33,7 +33,7 @@ export async function useSendMessage(
 
   // POST /messages API 호출
   const response = await $fetch<SendMessageResponse>(
-    "https://3.36.169.63:443/messages",
+    "https://ssgg.store:443/messages",
     {
       method: "POST",
       body: formData,

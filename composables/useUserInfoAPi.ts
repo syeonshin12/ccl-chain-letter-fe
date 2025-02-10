@@ -29,7 +29,7 @@ export async function useNicknameCheck(
   }
 
   const data = await $fetch<NicknameCheckResponse>(
-    "https://3.36.169.63:443/signUp/check",
+    "https://ssgg.store:443/signUp/check",
     {
       method: "GET",
       params: { nickname },
@@ -47,7 +47,7 @@ export async function useSignUp(nickname: string): Promise<SignUpResponse> {
     throw new Error("닉네임을 입력해주세요.");
   }
 
-  const data = await $fetch<SignUpResponse>("https://3.36.169.63:443/signUp", {
+  const data = await $fetch<SignUpResponse>("https://ssgg.store:443/signUp", {
     method: "POST",
     params: { nickname },
     headers: {
@@ -63,7 +63,7 @@ export async function useSignIn(nickname: string): Promise<SignInResponse> {
     throw new Error("닉네임을 입력해주세요.");
   }
 
-  const data = await $fetch<SignInResponse>("https://3.36.169.63:443/login", {
+  const data = await $fetch<SignInResponse>("https://ssgg.store:443/login", {
     method: "POST",
     params: { nickname },
     headers: {
