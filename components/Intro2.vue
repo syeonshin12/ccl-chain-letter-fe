@@ -44,7 +44,7 @@ function emitNext() {
 
 // 컴포넌트가 마운트되면 타이핑 효과 시작
 onMounted(() => {
-  intervalId = window.setInterval(typing, 100); // 200ms 간격으로 타이핑 실행
+  intervalId = window.setInterval(typing, 80); // 200ms 간격으로 타이핑 실행
 });
 </script>
 
@@ -84,8 +84,13 @@ onMounted(() => {
   white-space: pre-wrap; // \n을 줄 바꿈으로 처리
   font-family: monospace; // 타이핑 느낌을 살리기 위한 고정폭 폰트
 }
-
 .next-btn {
+  margin-top: 10px;
   font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.next-btn:hover {
+  transform: scale(1.1);
 }
 </style>
