@@ -134,6 +134,7 @@ const handleCloseModal = () => {
 
 .content {
   font-size: clamp(1rem, 2vw, 1.5rem);
+  white-space: pre-wrap; /* 추가: 줄 바꿈과 공백 유지 */
 }
 
 .letter-sender {
