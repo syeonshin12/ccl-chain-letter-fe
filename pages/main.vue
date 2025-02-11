@@ -65,6 +65,7 @@ let avatar: THREE.Group | null = null;
 let avatarMixer: THREE.AnimationMixer | null = null;
 let islandMixer: THREE.AnimationMixer | null = null;
 let islandMixer2: THREE.AnimationMixer | null = null;
+let islandMixer3: THREE.AnimationMixer | null = null;
 
 let boatGroup = new THREE.Group();
 
@@ -368,17 +369,57 @@ function init() {
     (gltf) => {
       const islandCoconut2 = gltf.scene;
       islandCoconut2.scale.set(8, 8, 8);
-      islandCoconut2.position.set(-1200, 17, -800);
+      islandCoconut2.position.set(-1600, 17, 0);
+      islandCoconut2.rotation.y = THREE.MathUtils.degToRad(-90);
       scene.add(islandCoconut2);
       if (gltf.animations && gltf.animations.length > 0) {
-        const mixer2 = new THREE.AnimationMixer(islandCoconut2);
-        const action2 = mixer2.clipAction(gltf.animations[0]);
+        islandMixer2 = new THREE.AnimationMixer(islandCoconut2);
+        const action2 = islandMixer2.clipAction(gltf.animations[0]);
         action2.play();
-        islandMixer2 = mixer2;
       }
     },
     undefined,
     (error) => console.error("Island coconut 2 model load failed:", error)
+  );
+
+  const islandLoader3 = new GLTFLoader();
+  islandLoader3.load(
+    "/beach_island.glb",
+    (gltf) => {
+      const islandModel = gltf.scene;
+      // 원하는 크기로 스케일 및 위치 조정 (예: 다른 객체와 겹치지 않도록)
+      islandModel.scale.set(25, 25, 25);
+      // 허전한 바다에 배치 (예: x: 2000, y: -10, z: -2000 등 원하는 위치)
+
+      islandModel.position.set(2000, 20, -1000);
+      islandModel.rotation.y = THREE.MathUtils.degToRad(240);
+      scene.add(islandModel);
+    },
+    undefined,
+    (error) => console.error("Island model load failed:", error)
+  );
+
+  const parkIslandLoader = new GLTFLoader();
+  parkIslandLoader.load(
+    "/park_island.glb",
+    (gltf) => {
+      const parkIsland = gltf.scene;
+      // 원하는 크기와 위치로 조정 (예시)
+      parkIsland.scale.set(25, 25, 25);
+      parkIsland.position.set(-600, 17, -2000);
+      // 정면 방향 회전 (예: 180도 회전)
+      // parkIsland.rotation.y = THREE.MathUtils.degToRad(180);
+      scene.add(parkIsland);
+      if (gltf.animations && gltf.animations.length > 0) {
+        // 애니메이션이 포함된 경우, AnimationMixer를 생성해서 재생
+
+        islandMixer3 = new THREE.AnimationMixer(parkIsland);
+        const action = islandMixer3.clipAction(gltf.animations[0]);
+        action.play();
+      }
+    },
+    undefined,
+    (error) => console.error("Park Island model load failed:", error)
   );
 
   initSkybox();
@@ -482,6 +523,10 @@ function animate() {
   }
   if (islandMixer2) {
     islandMixer2?.update(delta);
+  }
+
+  if (islandMixer3) {
+    islandMixer3?.update(delta);
   }
 
   water.material.uniforms["time"].value += delta;
