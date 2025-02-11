@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
   modules: ["@nuxtjs/google-fonts"],
-  css: ["~/assets/css/tailwind.css"],
+  css: ["~/assets/css/tailwind.css", "intro.js/introjs.css"],
   postcss: {
     plugins: {
       tailwindcss: {},

@@ -3,6 +3,7 @@
     <div ref="container"></div>
 
     <div class="tool-wrapper">
+      <button class="tutorial" @click="startTutorial">튜토리얼</button>
       <button class="write" @click="openWriteLetterModal">글쓰기</button>
     </div>
 
@@ -36,6 +37,41 @@ import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 import { ref, onMounted, onBeforeUnmount } from "vue";
+
+import introJs from "intro.js";
+
+const steps = [
+  {
+    intro: "안녕하세요~!<br/>행운의 편지에 오신 것을 진심으로 환영합니다!",
+  },
+  {
+    element: ".write",
+    intro: "글쓰기 버튼을 눌러, 마음을 담은 편지를 해류병에 담아 띄워보세요.",
+  },
+
+  {
+    intro:
+      "방향키를 사용해 바다를 누비며 <br/> 해류병에 담긴 메시지를 찾아보세요!",
+  },
+  {
+    intro: "즐거운 시간 보내세요~🍀",
+  },
+];
+
+const startTutorial = () => {
+  // 페이지가 마운트되면 튜토리얼 실행
+  introJs()
+    .setOptions({
+      steps,
+      showStepNumbers: true, // 단계 번호 표시 여부
+      exitOnOverlayClick: false, // 오버레이 클릭 시 튜토리얼 종료 안함
+      exitOnEsc: true, // ESC키로 튜토리얼 종료
+      nextLabel: "다음",
+      prevLabel: "이전",
+      doneLabel: "완료",
+    })
+    .start();
+};
 
 // 쪽지 데이터 타입 (composables/useFetchMessageList.ts 에서 정의한 Message 타입과 동일)
 interface Message {
@@ -194,7 +230,9 @@ onMounted(async () => {
   init();
   animate();
   setupKeyControls();
-
+  nextTick(() => {
+    startTutorial();
+  });
   // 쪽지 조회 API 호출 (useFetchMessageList는 Nuxt3 자동 임포트)
   try {
     const res = await useFetchMessageList();
@@ -535,6 +573,11 @@ function animate() {
 </script>
 
 <style scoped>
+.main-wrapper {
+  min-height: 100vh; /* 높이를 화면 전체로 확장 */
+  width: 100vw; /* 너비를 화면 전체로 확장 */
+}
+
 .canvas-container {
   position: fixed;
   top: 0;
@@ -574,6 +617,31 @@ function animate() {
 }
 
 .write:active {
+  transform: scale(0.98);
+}
+
+.tutorial {
+  background: #d3d3d3 !important;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-size: 23px;
+  font-weight: bold;
+  color: #fff !important;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  margin-right: 11px; /* 글쓰기 버튼과 간격 추가 */
+}
+
+.tutorial:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.tutorial:active {
   transform: scale(0.98);
 }
 </style>

@@ -12,6 +12,7 @@
   "dependencies": {
     "@lottiefiles/dotlottie-vue": "^0.5.3",
     "@vue-final-modal/nuxt": "^1.0.3",
+    "intro.js": "^7.2.0",
     "nuxt": "^3.14.1592",
     "three": "^0.171.0",
     "three-orbitcontrols": "^2.110.3",
