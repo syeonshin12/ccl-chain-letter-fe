@@ -74,6 +74,7 @@ const enter = async () => {
       successMessage.value = "환영합니다!";
       // 로그인 성공 시 localStorage에 닉네임 저장
       localStorage.setItem("nickname", result.data);
+      localStorage.setItem("firstVisit", "false");
       // 로그인 성공 후 1초 후에 메인 페이지로 이동
       setTimeout(() => router.push("/main"), 1000);
     }

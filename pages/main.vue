@@ -230,9 +230,12 @@ onMounted(async () => {
   init();
   animate();
   setupKeyControls();
-  nextTick(() => {
-    startTutorial();
-  });
+  if (localStorage.getItem("firstVisit") === "true") {
+    nextTick(() => {
+      startTutorial();
+      localStorage.setItem("firstVisit", "false");
+    });
+  }
   // 쪽지 조회 API 호출 (useFetchMessageList는 Nuxt3 자동 임포트)
   try {
     const res = await useFetchMessageList();

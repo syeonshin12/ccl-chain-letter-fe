@@ -107,6 +107,7 @@ const enter = async () => {
     const signUpResult = await useSignUp(nickname.value);
     if (signUpResult && signUpResult.code === 0) {
       localStorage.setItem("nickname", signUpResult.data);
+      localStorage.setItem("firstVisit", "true");
       router.push("/main");
     } else {
       errorMessage.value = `회원가입에 실패했습니다: ${signUpResult.message}`;
