@@ -11,7 +11,21 @@
       </div>
       <!-- 데이터가 정상적으로 로드된 경우 -->
       <div v-else class="modal-body">
-        <img class="letter-img" :src="fullImageUrl" alt="쪽지 이미지" />
+        <img
+          v-if="fullImageUrl"
+          class="letter-img"
+          :src="fullImageUrl"
+          alt="쪽지 이미지"
+        />
+        <DotLottieVue
+          v-else
+          class="no-img"
+          renderer="canvas"
+          autoplay
+          loop
+          src="/no_image.lottie"
+        />
+
         <div class="content-wrapper">
           <div class="content">
             {{ messageDetail?.content }}
@@ -26,6 +40,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed } from "vue";
+import { DotLottieVue } from "@lottiefiles/dotlottie-vue";
 
 const props = defineProps<{ selectedMessageId: number | null }>();
 const emit = defineEmits(["close-letter-modal"]);
@@ -64,7 +79,7 @@ const fullImageUrl = computed(() => {
   if (messageDetail.value?.imageUrl) {
     return `https://ssgg.store:443/${messageDetail.value.imageUrl.replace(/^\/+/, "")}`;
   }
-  return "/test_img.jpeg";
+  return "";
 });
 
 const handleCloseModal = () => {
@@ -120,6 +135,11 @@ const handleCloseModal = () => {
   border-radius: 10px;
   object-fit: contain;
   background-color: lightgray;
+}
+
+.no-img {
+  width: 90%;
+  height: 45%;
 }
 
 .content-wrapper {

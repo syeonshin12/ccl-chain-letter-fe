@@ -26,7 +26,7 @@
         class="custom_textarea"
         v-model="content"
         placeholder="내용을 입력해보세요."
-        maxlength="100"
+        maxlength="99"
         @input="clearError"
       ></textarea>
 
@@ -99,7 +99,7 @@ const handleSendLetter = async () => {
     errorMessage.value = "본문 내용을 입력해보세요.";
     return;
   }
-  if (content.value.length > 100) {
+  if (content.value.length >= 100) {
     errorMessage.value = "본문은 100자 이내로 입력해주세요.";
     return;
   }
