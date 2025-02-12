@@ -19,6 +19,18 @@
       @close-letter-modal="showLetterModal = false"
     />
 
+    <div class="success-message" v-if="showSuccessMessage">
+      <div class="overlay"></div>
+      <DotLottieVue
+        class="success-img"
+        renderer="canvas"
+        autoplay
+        loop
+        src="/success.lottie"
+      />
+      <div class="message-banner">편지가 성공적으로 전송되었습니다!</div>
+    </div>
+
     <!-- 병(bottle) 컴포넌트: 각 병 클릭 시, 해당 병의 messageId를 openLetterModal로 전달 -->
     <bottle
       :onClick="() => openLetterModal(bottle.messageId)"
@@ -38,8 +50,11 @@ import { Water } from "three/examples/jsm/objects/Water";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { DotLottieVue } from "@lottiefiles/dotlottie-vue";
 
 import introJs from "intro.js";
+
+const showSuccessMessage = ref(false);
 
 const steps = [
   {
@@ -188,6 +203,12 @@ const handleAddNewLetter = (newLetterId: number) => {
   const minDistanceBetweenBottles = 25;
   const pos = getRandomPosition(minDistanceFromBoat, minDistanceBetweenBottles);
   bottles.value.push({ position: pos, messageId: newLetterId });
+
+  // 성공 메시지 등을 보여주기 위한 UI 업데이트
+  showSuccessMessage.value = true;
+  setTimeout(() => {
+    showSuccessMessage.value = false;
+  }, 1700);
 };
 
 function getRandomPosition(
@@ -656,5 +677,48 @@ function animate() {
 
 .tutorial:active {
   transform: scale(0.98);
+}
+
+/* 전체 화면을 덮는 success-message 컨테이너 */
+.success-message {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999; /* 다른 요소 위에 표시 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 화면 전체를 덮는 어둡게 처리된 오버레이 */
+.success-message .overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1; /* 메시지 배너보다 아래에 위치 */
+}
+
+.success-message .success-img {
+  z-index: 2;
+  width: 200px;
+  height: 200px;
+}
+
+/* 중앙에 표시되는 메시지 배너 */
+.success-message .message-banner {
+  position: relative;
+  z-index: 2; /* 오버레이보다 위에 표시 */
+  color: white;
+  padding: 20px;
+  font-size: 1.8rem;
+  width: 600px;
+  text-align: center;
 }
 </style>
