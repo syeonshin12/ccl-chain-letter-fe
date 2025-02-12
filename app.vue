@@ -23,7 +23,8 @@ body {
 }
 
 .introjs-tooltiptext {
-  font-size: 24px !important;
+  font-family: "Gowun Dodum", cursive;
+  font-size: 23px !important;
 }
 
 .introjs-tooltipbuttons button {

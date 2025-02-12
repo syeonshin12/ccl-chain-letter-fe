@@ -54,7 +54,7 @@ const content = ref("");
 const errorMessage = ref("");
 const successMessage = ref("");
 
-const emit = defineEmits(["close-write-modal"]);
+const emit = defineEmits(["close-write-modal", "send-letter"]);
 
 // 모달이 열리면 localStorage에서 닉네임을 바로 확인
 onMounted(() => {
@@ -132,9 +132,8 @@ const handleSendLetter = async () => {
       content.value = "";
       imageFile.value = null;
       previewUrl.value = "";
-      setTimeout(() => {
-        emit("close-write-modal");
-      }, 1000);
+      emit("close-write-modal");
+      emit("send-letter", response.data.id);
     } else {
       errorMessage.value = response.message || "쪽지 전송 실패";
       successMessage.value = "";

@@ -10,6 +10,7 @@
     <write-letter-modal
       v-if="showWriteLetterModal"
       @close-write-modal="showWriteLetterModal = false"
+      @send-letter="handleAddNewLetter"
     />
 
     <letter-modal
@@ -46,7 +47,8 @@ const steps = [
   },
   {
     element: ".write",
-    intro: "글쓰기 버튼을 눌러, 마음을 담은 편지를 해류병에 담아 띄워보세요.",
+    intro:
+      "글쓰기 버튼을 눌러,<br/> 마음을 담은 편지를 해류병에 담아 띄워보세요.",
   },
 
   {
@@ -179,6 +181,14 @@ function createBottles() {
     });
   }
 }
+
+// 새 편지 id를 받아 해당 병 하나만 추가하는 핸들러
+const handleAddNewLetter = (newLetterId: number) => {
+  const minDistanceFromBoat = 80;
+  const minDistanceBetweenBottles = 25;
+  const pos = getRandomPosition(minDistanceFromBoat, minDistanceBetweenBottles);
+  bottles.value.push({ position: pos, messageId: newLetterId });
+};
 
 function getRandomPosition(
   minDistanceFromBoat: number,
