@@ -208,7 +208,7 @@ const handleAddNewLetter = (newLetterId: number) => {
   showSuccessMessage.value = true;
   setTimeout(() => {
     showSuccessMessage.value = false;
-  }, 1700);
+  }, 2000);
 };
 
 function getRandomPosition(
