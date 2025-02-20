@@ -3,7 +3,6 @@
     <div ref="container"></div>
 
     <div class="tool-wrapper">
-      <button class="tutorial" @click="startTutorial">튜토리얼</button>
       <button class="write" @click="openWriteLetterModal">글쓰기</button>
     </div>
 
