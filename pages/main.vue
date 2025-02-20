@@ -1,8 +1,13 @@
 <template>
   <div class="main-wrapper">
+    <div class="nav-left">
+      <button class="home" @click="goHome">처음으로</button>
+    </div>
+
     <div ref="container"></div>
 
     <div class="tool-wrapper">
+      <button class="tutorial" @click="startTutorial">튜토리얼</button>
       <button class="write" @click="openWriteLetterModal">글쓰기</button>
     </div>
 
@@ -135,6 +140,13 @@ let isUserInteracting = false;
 const showLetterModal = ref(false);
 const showWriteLetterModal = ref(false);
 const selectedMessageId = ref<number | null>(null);
+
+const router = useRouter();
+
+// "처음으로" 버튼 클릭 시 처리할 함수 (예: 홈으로 이동)
+const goHome = () => {
+  router.push("/");
+};
 
 const openWriteLetterModal = () => {
   showWriteLetterModal.value = true;
@@ -747,4 +759,44 @@ function animate() {
   width: 600px;
   text-align: center;
 }
+
+/* 왼쪽 상단 "처음으로" 버튼 스타일 */
+.nav-left {
+  position: absolute;
+  top: 40px;
+  left: 50px;
+  z-index: 1000;
+}
+
+.home {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 25px;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+  text-decoration: none;
+}
+
+.home::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px; /* 밑줄 위치 조정 */
+  width: 0;
+  height: 2px;
+  background-color: #fff;
+  transition: width 0.3s ease;
+}
+
+.home:hover::after {
+  width: 100%;
+}
+
+bottle:hover {
+  cursor: pointer;
+}
+  
 </style>
