@@ -1,28 +1,7 @@
 <template>
   <div class="main-wrapper">
     <!-- Three.js 렌더링 영역 -->
-    <div ref="container"></div>
-
-    <!-- 모달 컴포넌트들 -->
-    <write-letter-modal
-      v-if="showWriteLetterModal"
-      @close-write-modal="showWriteLetterModal = false"
-    />
-    <letter-modal
-      v-if="showLetterModal"
-      @close-letter-modal="showLetterModal = false"
-    />
-
-    <!-- Bottle 컴포넌트들 -->
-    <bottle
-      :onClick="openLetterModal"
-      v-for="(bottle, index) in bottles"
-      :key="index"
-      :position="bottle.position"
-      :scene="scene"
-      :camera="camera"
-    />
-
+  <div>hellooooo</div>
     <!-- (필요에 따라 다른 컴포넌트 추가) -->
   </div>
 </template>
