@@ -3,6 +3,11 @@
     <!-- Three.js 렌더링 영역 -->
     <div ref="container"></div>
 
+
+    <div class="tool-wrapper">
+      <button class="tutorial" @click="startTutorial">튜토리얼</button>
+      <button class="write" @click="openWriteLetterModal">글쓰기</button>
+    </div>
     <!-- 모달 컴포넌트들 -->
     <write-letter-modal
       v-if="showWriteLetterModal"
